@@ -1,0 +1,400 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module mvt ! in 
+    interface  ! in :mvt
+        module precision_model ! in :mvt:mvdist.f90
+            integer, public,parameter,optional :: stnd=selected_real_kind(12, 60)
+        end module precision_model
+        module mvstat ! in :mvt:mvdist.f90
+            use precision_model
+            integer, private :: nup
+            integer, private :: nuf
+            real(kind=8), private :: rf31
+            integer, private,dimension(500) :: inf
+            real(kind=8), private :: rf32
+            real(kind=8), private :: bf3
+            integer, parameter,private,optional :: nl=200
+            integer, private :: np
+            real(kind=8), private,dimension(500,200) :: cnstrn
+            real(kind=8), private,dimension(500) :: a
+            real(kind=8), private,dimension(500) :: b
+            real(kind=8), private,dimension(500) :: d
+            integer, parameter,private,optional :: ml=500
+            real(kind=8), private :: sqtnu
+            real(kind=8), private :: bf2
+            real(kind=8), private :: bf1
+            integer, private,dimension(500) :: conlng
+            integer, private :: mp
+            subroutine mvdist(n,covrnc,nu,m,lower,constr,upper,infin,delta,maxpts,abseps,releps,error,value,nevals,inform) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                real(kind=8) dimension(:,:),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer intent(in) :: m
+                real(kind=8) dimension(:),intent(in) :: lower
+                real(kind=8) dimension(:,:),intent(in) :: constr
+                real(kind=8) dimension(:),intent(in) :: upper
+                integer dimension(:),intent(in) :: infin
+                real(kind=8) dimension(:),intent(in) :: delta
+                integer intent(in) :: maxpts
+                real(kind=8) intent(in) :: abseps
+                real(kind=8) intent(in) :: releps
+                real(kind=8) intent(out) :: error
+                real(kind=8) intent(out) :: value
+                integer intent(out) :: nevals
+                integer intent(out) :: inform
+            end subroutine mvdist
+            function mvfunc(nf,w) result (value) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nf
+                real(kind=8) dimension(:),intent(in) :: w
+                real(kind=8) dimension(nf) :: value
+            end function mvfunc
+            subroutine mvchnt(n,p,r,s) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                real(kind=8) intent(in) :: p
+                real(kind=8) intent(out) :: r
+                real(kind=8) intent(out) :: s
+            end subroutine mvchnt
+            subroutine mvinit(n,covrnc,nu,m,lower,constr,upper,infin,delta,value,error,inform) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: infin
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                real(kind=8) intent(out) :: value
+                real(kind=8) intent(out) :: error
+                integer intent(out) :: inform
+            end subroutine mvinit
+            subroutine mvspcl(nu,value,error,inform) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(out) :: value
+                real(kind=8) intent(out) :: error
+                integer intent(in) :: inform
+            end subroutine mvspcl
+            subroutine mvlims(nu,a,b,infin,lower,upper,value) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: a
+                real(kind=8) intent(in) :: b
+                integer intent(in) :: infin
+                real(kind=8) intent(out) :: lower
+                real(kind=8) intent(out) :: upper
+                real(kind=8) intent(out) :: value
+            end subroutine mvlims
+            subroutine mvdstd(n,covrnc,nu,m,lower,constr,upper,infin,t,maxpts,abseps,releps,error,value,deriv,nevals,inform) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: infin
+                real(kind=8) intent(in) :: t
+                integer intent(in) :: maxpts
+                real(kind=8) intent(in) :: abseps
+                real(kind=8) intent(in) :: releps
+                real(kind=8) intent(out) :: error
+                real(kind=8) intent(out) :: value
+                real(kind=8) intent(out) :: deriv
+                integer intent(out) :: nevals
+                integer intent(out) :: inform
+            end subroutine mvdstd
+            subroutine mvintd(n,covrnc,nu,m,lower,constr,upper,infin,t,value,deriv,error,inform) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: infin
+                real(kind=8) intent(in) :: t
+                real(kind=8) intent(out) :: value
+                real(kind=8) intent(out) :: deriv
+                real(kind=8) intent(out) :: error
+                integer intent(out) :: inform
+            end subroutine mvintd
+            subroutine mvsort(n,covrnc,m,lower,constr,upper,infin,delta,pivot,inform) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: infin
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                logical intent(in) :: pivot
+                integer intent(inout) :: inform
+            end subroutine mvsort
+            subroutine mvvrnc(a,b,inf,epsi,mean,varanc) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: a
+                real(kind=8) intent(in) :: b
+                integer intent(in) :: inf
+                real(kind=8) intent(in) :: epsi
+                real(kind=8) intent(out) :: mean
+                real(kind=8) intent(out) :: varanc
+            end subroutine mvvrnc
+            subroutine mvswap(x,y) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(inout) :: x
+                real(kind=8) intent(inout) :: y
+            end subroutine mvswap
+            subroutine mvcrit(n,covrnc,nu,m,lower,constr,upper,infin,alpha,maxpts,abseps,error,talpha,nvs,inform) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: infin
+                real(kind=8) intent(in) :: alpha
+                integer intent(in) :: maxpts
+                real(kind=8) intent(in) :: abseps
+                real(kind=8) intent(out) :: error
+                real(kind=8) intent(out) :: talpha
+                integer intent(out) :: nvs
+                integer intent(out) :: inform
+            end subroutine mvcrit
+            subroutine lwrupr(n,covrnc,nu,m,lower,constr,upper,lf,delta,t,lwrbnd,uprbnd) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: lf
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                real(kind=8) intent(in) :: t
+                real(kind=8) intent(out) :: lwrbnd
+                real(kind=8) intent(out) :: uprbnd
+            end subroutine lwrupr
+            subroutine lwuprh(n,covrnc,nu,m,lower,constr,upper,lf,delta,t,lwrbnd,uprbnd) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: lf
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                real(kind=8) intent(in) :: t
+                real(kind=8) intent(out) :: lwrbnd
+                real(kind=8) intent(out) :: uprbnd
+            end subroutine lwuprh
+            subroutine lwuprt(n,covrnc,nu,m,lower,constr,upper,lf,delta,t,lwrbnd,uprbnd) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer intent(in) :: nu
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: lf
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                real(kind=8) intent(in) :: t
+                real(kind=8) intent(out) :: lwrbnd
+                real(kind=8) intent(out) :: uprbnd
+            end subroutine lwuprt
+            subroutine covscl(n,covrnc,m,lower,constr,upper,lf,delta,t,at,bt,cr) ! in :mvt:mvdist.f90:mvstat
+                integer, optional,intent(in),check(shape(covrnc,0)==n),depend(covrnc) :: n=shape(covrnc,0)
+                real(kind=8) dimension(n,n),intent(in) :: covrnc
+                integer, optional,intent(in),check(len(lower)>=m),depend(lower) :: m=len(lower)
+                real(kind=8) dimension(m),intent(in) :: lower
+                real(kind=8) dimension(m,n),intent(in),depend(m,n) :: constr
+                real(kind=8) dimension(m),intent(in),depend(m) :: upper
+                integer dimension(m),intent(in),depend(m) :: lf
+                real(kind=8) dimension(m),intent(in),depend(m) :: delta
+                real(kind=8) intent(in) :: t
+                real(kind=8) dimension(m),intent(out),depend(m) :: at
+                real(kind=8) dimension(m),intent(out),depend(m) :: bt
+                real(kind=8) dimension(m,m),intent(out),depend(m,m) :: cr
+            end subroutine covscl
+            subroutine mvkbrv(n,minvls,maxvls,nf,functn,abseps,releps,abserr,finest,intvls,inform) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                integer intent(in) :: minvls
+                integer intent(in) :: maxvls
+                integer intent(in) :: nf
+                external functn
+                real(kind=8) intent(in) :: abseps
+                real(kind=8) intent(in) :: releps
+                real(kind=8) intent(out) :: abserr
+                real(kind=8) dimension(nf),intent(out),depend(nf) :: finest
+                integer intent(out) :: intvls
+                integer intent(out) :: inform
+                interface  ! in :mvt:mvdist.f90:mvstat:mvkbrv
+                    function functn(nf,x) result (value) ! in :mvt:mvdist.f90:mvstat:mvkbrv:unknown_interface
+                        use precision_model
+                        integer intent(in) :: nf
+                        real(kind=8) dimension(:),intent(in) :: x
+                        real(kind=8) dimension(nf) :: value
+                    end function functn
+                end interface 
+            end subroutine mvkbrv
+            function mvkrsv(n,prime,vk,nf,functn) result (values) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                integer intent(in) :: prime
+                real(kind=8) dimension(:),intent(inout) :: vk
+                integer intent(in) :: nf
+                external functn
+                real(kind=8) dimension(nf) :: values
+                interface  ! in :mvt:mvdist.f90:mvstat:mvkrsv
+                    function functn(nf,x) result (value) ! in :mvt:mvdist.f90:mvstat:mvkrsv:unknown_interface
+                        use precision_model
+                        integer intent(in) :: nf
+                        real(kind=8) dimension(:),intent(in) :: x
+                        real(kind=8) dimension(nf) :: value
+                    end function functn
+                end interface 
+            end function mvkrsv
+            function unifrm() result (uni) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) :: uni
+            end function unifrm
+            function mvdnst(nu,x) result (dnsty) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: x
+                real(kind=8) :: dnsty
+            end function mvdnst
+            function mvuvt(nu,a,b,infin) result (value) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: a
+                real(kind=8) intent(in) :: b
+                integer intent(in) :: infin
+                real(kind=8) :: value
+            end function mvuvt
+            function mvstdt(nu,t) result (dstrb) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: t
+                real(kind=8) :: dstrb
+            end function mvstdt
+            function mvstnv(n,z) result (stinv) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                real(kind=8) intent(in) :: z
+                real(kind=8) :: stinv
+            end function mvstnv
+            function mvstdc(nu,l,u,infn) result (dstrbc) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: l
+                real(kind=8) intent(in) :: u
+                integer intent(in) :: infn
+                real(kind=8) :: dstrbc
+            end function mvstdc
+            function mvphi(z) result (p) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: z
+                real(kind=8) :: p
+            end function mvphi
+            function mvphnv(p) result (phinv) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: p
+                real(kind=8) :: phinv
+            end function mvphnv
+            function mvchnv(n,p) result (r) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                real(kind=8) intent(in) :: p
+                real(kind=8) :: r
+            end function mvchnv
+            function mvchnc(lkn,n,p,r) result (chnc) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: lkn
+                integer intent(in) :: n
+                real(kind=8) intent(in) :: p
+                real(kind=8) intent(in) :: r
+                real(kind=8) :: chnc
+            end function mvchnc
+            function mvchi(n,r) result (chi) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: n
+                real(kind=8) intent(in) :: r
+                real(kind=8) :: chi
+            end function mvchi
+            function mvbvt(nu,lower,upper,infin,correl) result (bvnbvt) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) dimension(:),intent(in) :: lower
+                real(kind=8) dimension(:),intent(in) :: upper
+                integer dimension(:),intent(in) :: infin
+                real(kind=8) intent(in) :: correl
+                real(kind=8) :: bvnbvt
+            end function mvbvt
+            function mvbvtl(nu,dh,dk,r) result (bvt) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) intent(in) :: dh
+                real(kind=8) intent(in) :: dk
+                real(kind=8) intent(in) :: r
+                real(kind=8) :: bvt
+            end function mvbvtl
+            function mvbvu(sh,sk,r) result (bvn) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: sh
+                real(kind=8) intent(in) :: sk
+                real(kind=8) intent(in) :: r
+                real(kind=8) :: bvn
+            end function mvbvu
+            function mvbvtc(nu,l,u,infin,rho) result (bvtc) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) dimension(:),intent(in) :: l
+                real(kind=8) dimension(:),intent(in) :: u
+                integer dimension(:),intent(in) :: infin
+                real(kind=8) intent(in) :: rho
+                real(kind=8) :: bvtc
+            end function mvbvtc
+            function mvtvt(nu,lower,upper,infin,cr) result (tvnt) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) dimension(:),intent(in) :: lower
+                real(kind=8) dimension(:),intent(in) :: upper
+                integer dimension(:),intent(in) :: infin
+                real(kind=8) dimension(:),intent(in) :: cr
+                real(kind=8) :: tvnt
+            end function mvtvt
+            function mvtvtl(nu,limit,sigma) result (tvt) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) dimension(3),intent(in) :: limit
+                real(kind=8) dimension(3),intent(in) :: sigma
+                real(kind=8) :: tvt
+            end function mvtvtl
+            function tvtfnc(x) result (tvtsfn) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: x
+                real(kind=8) :: tvtsfn
+            end function tvtfnc
+            function mvadon(functn,a,b,tol) result (fin) ! in :mvt:mvdist.f90:mvstat
+                external functn
+                real(kind=8) intent(in) :: a
+                real(kind=8) intent(in) :: b
+                real(kind=8) intent(in) :: tol
+                real(kind=8) :: fin
+                interface  ! in :mvt:mvdist.f90:mvstat:mvadon
+                    function functn(x) result (value) ! in :mvt:mvdist.f90:mvstat:mvadon:unknown_interface
+                        use precision_model
+                        real(kind=8) intent(in) :: x
+                        real(kind=8) :: value
+                    end function functn
+                end interface 
+            end function mvadon
+            function mvkrnd(a,b,functn,err) result (resk) ! in :mvt:mvdist.f90:mvstat
+                real(kind=8) intent(in) :: a
+                real(kind=8) intent(in) :: b
+                external functn
+                real(kind=8) intent(out) :: err
+                real(kind=8) :: resk
+                interface  ! in :mvt:mvdist.f90:mvstat:mvkrnd
+                    function functn(x) result (value) ! in :mvt:mvdist.f90:mvstat:mvkrnd:unknown_interface
+                        use precision_model
+                        real(kind=8) intent(in) :: x
+                        real(kind=8) :: value
+                    end function functn
+                end interface 
+            end function mvkrnd
+            function mvtvtc(nu,l,u,infin,rho) result (tvtc) ! in :mvt:mvdist.f90:mvstat
+                integer intent(in) :: nu
+                real(kind=8) dimension(:),intent(in) :: l
+                real(kind=8) dimension(:),intent(in) :: u
+                integer dimension(:),intent(in) :: infin
+                real(kind=8) dimension(:),intent(in) :: rho
+                real(kind=8) :: tvtc
+            end function mvtvtc
+        end module mvstat
+    end interface 
+end python module mvt
+
+! This file was auto-generated with f2py (version:2).
+! See http://cens.ioc.ee/projects/f2py2e/
