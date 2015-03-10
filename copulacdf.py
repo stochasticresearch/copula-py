@@ -16,8 +16,52 @@ copulacdf.py contains routines which provide Copula CDF values
 # TODO: consolidate all other functions into this, instead of having
 # a million functions all do similar things, switch w/ family argument
 # similar to octave and matlab
-def copulacdf(family, u, **kwargs):
-    pass
+def copulacdf(family, u, *args):
+    """ Generates values of the Gaussian copula
+    
+    Inputs:
+    u -- u is an N-by-P matrix of values in [0,1], representing N
+         points in the P-dimensional unit hypercube.  
+    
+    rho -- a P-by-P correlation matrix, the first argument required for the gaussian copula
+    
+    Outputs:
+    y -- the value of the Gaussian Copula
+    """
+
+    num_var_args = len(args)
+    family_lc = family.lower()
+    if(family_lc=='gaussian'):
+        if(num_var_args!=1):
+            raise ValueError("Gaussian family requires one additional argument -- rho (correlation matrix) [P x P]")
+        rho = args[1]
+        # TODO: some error checking to see if rho is a P x P matrix?
+        y = gaussian_copula_cdf(u, rho)
+        
+    elif(family_lc=='t'):
+        pass
+    elif(family_lc=='clayton'):
+        if(num_var_args!=1):
+            raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
+        alpha = args[1]
+        # TODO: make sure alpha is a scalar
+        y = clayton_copula_cdf(u, alpha)
+    elif(family_lc=='frank'):
+        if(num_var_args!=1):
+            raise ValueError("Frank family requires one additional argument -- alpha [scalar]")
+        alpha = args[1]
+        # TODO: make sure alpha is a scalar
+        y = frank_copula_cdf(u, alpha)
+    elif(family_lc=='gumbel'):
+        if(num_var_args!=1):
+            raise ValueError("Gumbel family requires one additional argument -- alpha [scalar]")
+        alpha = args[1]
+        # TODO: make sure alpha is a scalar
+        y = gumbel_copula_cdf(u, alpha)
+    else:
+        raise ValueError("Unrecognized family of copula")
+    
+    return y
 
 def gaussian_copula_cdf(u, rho):
     """ Generates values of the Gaussian copula
