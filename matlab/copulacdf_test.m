@@ -14,6 +14,8 @@ rho = 0.8;
 Rho = [1 rho; rho 1];
 gaussian_copula_cdf = copulacdf('gaussian',[U1(:) U2(:)], Rho);
 
+% Generate samples of T copula
+
 % Generate samples of the Clayton copula
 alpha = 0.3;
 clayton_copula_cdf = copulacdf('clayton',[U1(:) U2(:)], alpha);
@@ -21,10 +23,13 @@ clayton_copula_cdf = copulacdf('clayton',[U1(:) U2(:)], alpha);
 % Generate samples of the Frank copula
 frank_copula_cdf = copulacdf('frank',[U1(:) U2(:)], alpha);
 
-% Generate samples of other coupla's here
+% Generate samples of the Gumbel Copula
+alpha = 1.5;
+gumbel_copula_cdf = copulacdf('gumbel',[U1(:) U2(:)], alpha);
 
 % save them all for testing against python generated data
 save('copula_cdf_test.mat', ...
         'gaussian_copula_cdf', ...
         'clayton_copula_cdf', ...
-        'frank_copula_cdf')
+        'frank_copula_cdf', ...
+        'gumbel_copula_cdf')

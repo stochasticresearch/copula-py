@@ -6,16 +6,10 @@ import numpy as np
 from scipy.stats import mvn                     # contains inverse CDF of Multivariate Gaussian
 from scipy.stats import norm                    # contains PDF of Gaussian
 
-# TODO: make this more like copularnd in matlab/octave, one function w/ options
-# which selects
-
 """
 copulacdf.py contains routines which provide Copula CDF values 
 """
 
-# TODO: consolidate all other functions into this, instead of having
-# a million functions all do similar things, switch w/ family argument
-# similar to octave and matlab
 def copulacdf(family, u, *args):
     """ Generates values of the Gaussian copula
     
@@ -23,19 +17,24 @@ def copulacdf(family, u, *args):
     u -- u is an N-by-P matrix of values in [0,1], representing N
          points in the P-dimensional unit hypercube.  
     
-    rho -- a P-by-P correlation matrix, the first argument required for the gaussian copula
+    rho -- a P-by-P correlation matrix, the first argument required for the Gaussian copula
+    alpha -- a scalar argument describing the dependency for Frank, Gumbel, and Clayton copula's
     
     Outputs:
     y -- the value of the Gaussian Copula
     """
+    n  = u.shape[0]
+    p  = u.shape[1]
 
     num_var_args = len(args)
     family_lc = family.lower()
     if(family_lc=='gaussian'):
         if(num_var_args!=1):
             raise ValueError("Gaussian family requires one additional argument -- rho (correlation matrix) [P x P]")
-        rho = args[1]
-        # TODO: some error checking to see if rho is a P x P matrix?
+        rho = args[0]
+        rho_expected_shape = (p,p)
+        if(type(rho)!=np.ndarray || rho.shape!=rho_expected_shape):
+            raise ValueError("Gaussian family requires rho to be of type numpy.ndarray with shape=[P x P]")
         y = gaussian_copula_cdf(u, rho)
         
     elif(family_lc=='t'):
@@ -43,20 +42,23 @@ def copulacdf(family, u, *args):
     elif(family_lc=='clayton'):
         if(num_var_args!=1):
             raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
-        alpha = args[1]
-        # TODO: make sure alpha is a scalar
+        alpha = args[0]
+        if(type(alpha)!=float):
+            raise ValueError('Clayton family requires a scalar alpha value')
         y = clayton_copula_cdf(u, alpha)
     elif(family_lc=='frank'):
         if(num_var_args!=1):
             raise ValueError("Frank family requires one additional argument -- alpha [scalar]")
-        alpha = args[1]
-        # TODO: make sure alpha is a scalar
+        alpha = args[0]
+        if(type(alpha)!=float):
+            raise ValueError('Clayton family requires a scalar alpha value')
         y = frank_copula_cdf(u, alpha)
     elif(family_lc=='gumbel'):
         if(num_var_args!=1):
             raise ValueError("Gumbel family requires one additional argument -- alpha [scalar]")
-        alpha = args[1]
-        # TODO: make sure alpha is a scalar
+        alpha = args[0]
+        if(type(alpha)!=float):
+            raise ValueError('Clayton family requires a scalar alpha value')
         y = gumbel_copula_cdf(u, alpha)
     else:
         raise ValueError("Unrecognized family of copula")
@@ -103,8 +105,7 @@ def t_copula_cdf(u, rho, n):
 def clayton_copula_cdf(u, alpha):
     # C(u1,u2) = (u1^(-alpha) + u2^(-alpha) - 1)^(-1/alpha)
     if(alpha<0):
-        # TODO: some sort of error here?
-        return None
+        raise ValueError("Clayton family -- invalid alpha argument. alpha must be >=0")
     elif(alpha==0):
         y = np.prod(u,1)
     else:
@@ -125,14 +126,24 @@ def frank_copula_cdf(u, alpha):
     return y
 
 def gumbel_copula_cdf(u, alpha):
-    # C(u1,u2) = exp(-((-log(u1))^alpha + (-log(u2))^alpha)^(1/alpha))
+    # C(u1,u2) = exp(-( (-log(u1))^alpha + (-log(u2))^alpha )^(1/alpha))
+    n = u.shape[0]
+    p = u.shape[1]
+    
     if(alpha<1):
-        # TODO: some sort of error here?
-        return None
+        raise ValueError("Gumbel family -- invalid alpha argument. alpha must be >=1")
     elif(alpha==1):
         y = np.prod(u,1)
     else:
-        pass
+        # TODO: NaN checking like Matlab here would be nice :)
+        exparg = np.zeros(n)
+        for ii in np.arange(p):
+            tmp1 = np.power(-1*np.log(u[:,ii]), alpha)
+            exparg = exparg + tmp1
+        exparg = np.power(exparg, 1.0/alpha)
+        y = np.exp(-1*exparg)
+        
+    return y
 
 def test_python_vs_matlab(family):
     # generate U1, U2
@@ -157,7 +168,7 @@ def test_python_vs_matlab(family):
     matlab_data = scipy.io.loadmat('matlab/copula_cdf_test.mat')
     
     if(family.lower()=='gaussian'):
-        gaussian_copula_cdf_python = gaussian_copula_cdf(U,Rho)
+        gaussian_copula_cdf_python = copulacdf(family,U,Rho)
         gaussian_copula_cdf_matlab = matlab_data['gaussian_copula_cdf']
         gaussian_copula_cdf_matlab = gaussian_copula_cdf_matlab[:,0]
         
@@ -173,10 +184,10 @@ def test_python_vs_matlab(family):
         Y = UU[1]
         Z = np.reshape(gaussian_copula_cdf_python,UU[0].shape)
         
-        plot_3d(X,Y,Z, 'Gaussian Copula CDF')
+        plot_utils.plot_3d(X,Y,Z, 'Gaussian Copula CDF')
         
     elif(family.lower()=='clayton'):
-        clayton_copula_cdf_python = clayton_copula_cdf(U,alpha)
+        clayton_copula_cdf_python = copulacdf(family,U,alpha)
         clayton_copula_cdf_matlab = matlab_data['clayton_copula_cdf']
         clayton_copula_cdf_matlab = clayton_copula_cdf_matlab[:,0]
         
@@ -192,10 +203,10 @@ def test_python_vs_matlab(family):
         Y = UU[1]
         Z = np.reshape(clayton_copula_cdf_python,UU[0].shape)
         
-        plot_3d(X,Y,Z, 'Clayton Copula CDF')
+        plot_utils.plot_3d(X,Y,Z, 'Clayton Copula CDF')
         
     elif(family.lower()=='frank'):
-        frank_copula_cdf_python = frank_copula_cdf(U,alpha)
+        frank_copula_cdf_python = copulacdf(family,U,alpha)
         frank_copula_cdf_matlab = matlab_data['frank_copula_cdf']
         frank_copula_cdf_matlab = frank_copula_cdf_matlab[:,0]
         
@@ -211,26 +222,36 @@ def test_python_vs_matlab(family):
         Y = UU[1]
         Z = np.reshape(frank_copula_cdf_python,UU[0].shape)
         
-        plot_3d(X,Y,Z, 'Frank Copula CDF')
+        plot_utils.plot_3d(X,Y,Z, 'Frank Copula CDF')
+        
+    elif(family.lower()=='gumbel'):
+        alpha = 1.5
+        gumbel_copula_cdf_python = copulacdf(family,U,alpha)
+        gumbel_copula_cdf_matlab = matlab_data['gumbel_copula_cdf']
+        gumbel_copula_cdf_matlab = gumbel_copula_cdf_matlab[:,0]
+        
+        # compare the two
+        gumbel_copula_test_result = np.allclose(gumbel_copula_cdf_python,gumbel_copula_cdf_matlab)
+        if(gumbel_copula_test_result):
+            print 'Gumbel Copula Python calculation matches Matlab!'
+        else:
+            print 'Gumbel Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Clayton Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(gumbel_copula_cdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'Gumbel Copula CDF')
 
-def plot_3d(X,Y,Z, titleStr):
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,
-        linewidth=0, antialiased=False)
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-    plt.xlabel('U1')
-    plt.ylabel('U2')
-    plt.title(titleStr)
-    plt.show()
+
 
 if __name__=='__main__':
     import scipy.io
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
+    import plot_utils
     
     test_python_vs_matlab('Gaussian')
     test_python_vs_matlab('Clayton')
     test_python_vs_matlab('Frank')
+    test_python_vs_matlab('Gumbel')
     
