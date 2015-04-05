@@ -33,7 +33,7 @@ def copulacdf(family, u, *args):
             raise ValueError("Gaussian family requires one additional argument -- rho (correlation matrix) [P x P]")
         rho = args[0]
         rho_expected_shape = (p,p)
-        if(type(rho)!=np.ndarray || rho.shape!=rho_expected_shape):
+        if(type(rho)!=np.ndarray or rho.shape!=rho_expected_shape):
             raise ValueError("Gaussian family requires rho to be of type numpy.ndarray with shape=[P x P]")
         y = gaussian_copula_cdf(u, rho)
         
