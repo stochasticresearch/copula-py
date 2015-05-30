@@ -19,17 +19,17 @@
 #* along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #******************************************************************************
 
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-from matplotlib import cm
+import numpy as np
+import scipy.integrate as integrate
 
-def plot_3d(X,Y,Z, titleStr):
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap=cm.coolwarm,
-        linewidth=0, antialiased=False)
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-    plt.xlabel('U1')
-    plt.ylabel('U2')
-    plt.title(titleStr)
-    plt.show()
+def debye(x, n):
+    """
+    Evaluate the Debye function.
+    See http://en.wikipedia.org/wiki/Debye_function for details
+    """
+    
+    # ensure n is a float
+    n = float(n)
+    
+    sol = integrate.quad( lambda xi: pow(xi,n)/(np.exp(xi)-1.0) , 0.0, x)
+    return n*sol[0]/pow(x,n)
