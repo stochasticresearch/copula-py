@@ -263,8 +263,6 @@ def test_python_vs_matlab(family):
         
         plot_utils.plot_3d(X,Y,Z, 'Gumbel Copula CDF')
 
-
-
 if __name__=='__main__':
     import scipy.io
     import plot_utils
