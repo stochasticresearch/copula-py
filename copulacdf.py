@@ -182,9 +182,9 @@ def test_python_vs_matlab(family):
     
     alpha = 0.3
     
-    # test the Gaussian Copula against Matlab
+    # test the python data against Matlab
     # TODO: make python execute the matlab script which generates these samples
-    matlab_data = scipy.io.loadmat('matlab/copula_cdf_test.mat')
+    matlab_data = scipy.io.loadmat('matlab/copulacdf_test.mat')
     
     if(family.lower()=='gaussian'):
         gaussian_copula_cdf_python = copulacdf(family,U,Rho)

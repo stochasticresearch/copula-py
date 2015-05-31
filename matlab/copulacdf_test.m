@@ -1,8 +1,8 @@
 % Matlab test script which generates copula samples similar to copulacdf.py
 % for comparison purposes
 
-% remove the old copula_cdf_test.mat
-delete('copula_cdf_test.mat')
+% remove the old copulacdf_test.mat
+delete('copulacdf_test.mat')
 
 % data which will define where we want to know the value of the Copula
 u = linspace(0+eps,1-eps,10);
@@ -28,7 +28,7 @@ alpha = 1.5;
 gumbel_copula_cdf = copulacdf('gumbel',[U1(:) U2(:)], alpha);
 
 % save them all for testing against python generated data
-save('copula_cdf_test.mat', ...
+save('copulacdf_test.mat', ...
         'gaussian_copula_cdf', ...
         'clayton_copula_cdf', ...
         'frank_copula_cdf', ...
