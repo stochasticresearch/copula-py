@@ -22,8 +22,7 @@
 import math
 import numpy as np
 
-from scipy.stats import kendalltau
-from scipy.stats import spearmanr
+import multivariate_stats
 
 """
 copulafit.py contains routines which provide use various techniques, as
@@ -45,8 +44,8 @@ def copulafit(family, X, algorithm):
         'Gumbel'
         'Frank'
       X -- the data to determine the copula dependency parameter for. Must be
-           a numpy array of shape = N x M, where N is the dimensionality of the
-           data and M is the number of samples
+           a numpy array of shape = M x N, where M is the number of samples 
+           and N is the dimensionality of the data
       algorithm -- must be one of the following strings:
         'IFM' - Inference Functions for Margin's method
         'CML' - Canonical Maximum Likelihood
@@ -79,7 +78,7 @@ def copulafit(family, X, algorithm):
     
 def _gauss_dependency(X):
     pass
-
+    
 def _t_dependency(X):
     pass
 
