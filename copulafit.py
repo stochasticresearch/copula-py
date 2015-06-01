@@ -25,6 +25,7 @@ import numpy as np
 import multivariate_stats
 from invcopulastat import invcopulastat
 from scipy.stats import kendalltau
+from numpy.linalg import eig
 
 """
 copulafit.py contains routines which provide use various techniques, as
@@ -59,30 +60,30 @@ def copulafit(family, X, algorithm):
       the dependency parameter for the copula
                        
     """
-    algorithm_lc = algorithm.lower()
-    family_lc    = family.lower()
-    dep_param    = None
+    algorithm_lc  = algorithm.lower()
+    family_lc     = family.lower()
+    dep_param_est = None
     if(algorithm_lc=='MLE'):
         raise ValueError('MLE method not yet supported!')
     elif(algorithm_lc=='AMLE'):
         raise ValueError('Approximate MLE method not yet supported!')
     elif(algorithm_lc=='PKTE'):
         if(family_lc=='gaussian'):
-            dep_param = _gaussian_PKTE(X)
+            dep_param_est = _gaussian_PKTE(X)
         elif(family_lc=='t'):
-            dep_param = _t_PKTE(X)
+            dep_param_est = _t_PKTE(X)
         elif(family_lc=='clayton'):
-            dep_param = _clayton_PKTE(X)
+            dep_param_est = _clayton_PKTE(X)
         elif(family_lc=='gumbel'):
-            dep_param = _gumbel_PKTE(X)
+            dep_param_est = _gumbel_PKTE(X)
         elif(family_lc=='frank'):
-            dep_param = _frank_PKTE(X)
+            dep_param_est = _frank_PKTE(X)
     else:
         raise ValueError('Unsupported Algorithm or options!')
     
-    return dep_param
+    return dep_param_est
     
-def _guassian_PKTE(X):
+def _gaussian_PKTE(X):
     # the algorithm for this comes from the paper:
     # "Gaussian Copula Precision Estimation with Missing Values" 
     # by Huahua Wang, Faridel Fazayeli, Soumyadeep Chatterjee, Arindam Banerjee
@@ -94,32 +95,73 @@ def _guassian_PKTE(X):
             # correlation matrix is symmetric
             sigma_hat[dim1][dim2] = rho
             sigma_hat[dim2][dim1] = rho
+            
+    # ensure that sigma_hat is positive semidefinite
+    sigma_hat = _nearPD(sigma_hat)
+            
+    return sigma_hat
 
 # TODO: T copula stuff
 def _t_PKTE(X):
-    return None
+    # first estimate correlation matrix
+    sigma_hat = _gaussian_PKTE(X)
+    
+    # TODO: use MLE to estimate degrees of freedom 
+    nu = 1
+    
+    return (sigma_hat, nu)
     
 def _clayton_PKTE(X):
     # calculate empirical kendall's tau
     ktau = multivariate_stats.kendalls_tau(X)
     # inverse to find dependency parameter
-    alpha = invcopulastat('Clayton', 'kendall', ktau)
+    alpha_hat = invcopulastat('Clayton', 'kendall', ktau)
     
-    return alpha
+    return alpha_hat
 
 def _gumbel_PKTE(X):
     # calculate empirical kendall's tau
     ktau = multivariate_stats.kendalls_tau(X)
     # inverse to find dependency parameter
-    alpha = invcopulastat('Gumbel', 'kendall', ktau)
+    alpha_hat = invcopulastat('Gumbel', 'kendall', ktau)
     
-    return alpha
+    return alpha_hat
 
 
 def _frank_PKTE(X):
     # calculate empirical kendall's tau
     ktau = multivariate_stats.kendalls_tau(X)
     # inverse to find dependency parameter
-    alpha = invcopulastat('Frank', 'kendall', ktau)
+    alpha_hat = invcopulastat('Frank', 'kendall', ktau)
     
-    return alpha
+    return alpha_hat
+
+def _getAplus(A):
+    eigval, eigvec = eig(A)
+    Q = np.matrix(eigvec)
+    xdiag = np.matrix(np.diag(np.maximum(eigval, 0)))
+    return Q*xdiag*Q.T
+
+def _getPs(A, W=None):
+    W05 = np.matrix(W**.5)
+    return  W05.I * _getAplus(W05 * A * W05) * W05.I
+
+def _getPu(A, W=None):
+    Aret = np.array(A.copy())
+    Aret[W > 0] = np.array(W)[W > 0]
+    return np.matrix(Aret)
+
+def _nearPD(A, nit=10):
+    n = A.shape[0]
+    W = np.identity(n) 
+    
+    # W is the matrix used for the norm (assumed to be Identity matrix here)
+    # the algorithm should work for any diagonal W
+    deltaS = 0
+    Yk = A.copy()
+    for k in range(nit):
+        Rk = Yk - deltaS
+        Xk = _getPs(Rk, W=W)
+        deltaS = Xk - Rk
+        Yk = _getPu(Xk, W=W)
+    return Yk

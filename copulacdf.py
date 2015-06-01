@@ -30,7 +30,7 @@ copulacdf.py contains routines which provide Copula CDF values
 """
 
 def copulacdf(family, u, *args):
-    """ Generates values of the Gaussian copula
+    """ Generates values of a requested copula family
     
     Inputs:
     u -- u is an N-by-P matrix of values in [0,1], representing N
@@ -54,9 +54,10 @@ def copulacdf(family, u, *args):
         rho_expected_shape = (p,p)
         if(type(rho)!=np.ndarray or rho.shape!=rho_expected_shape):
             raise ValueError("Gaussian family requires rho to be of type numpy.ndarray with shape=[P x P]")
-        y = gaussian_copula_cdf(u, rho)
+        y = _gaussian(u, rho)
         
     elif(family_lc=='t'):
+        # TODO: fix!
         return None
     elif(family_lc=='clayton'):
         if(num_var_args!=1):
@@ -64,27 +65,27 @@ def copulacdf(family, u, *args):
         alpha = args[0]
         if(type(alpha)!=float):
             raise ValueError('Clayton family requires a scalar alpha value')
-        y = clayton_copula_cdf(u, alpha)
+        y = _clayton(u, alpha)
     elif(family_lc=='frank'):
         if(num_var_args!=1):
             raise ValueError("Frank family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
         if(type(alpha)!=float):
             raise ValueError('Clayton family requires a scalar alpha value')
-        y = frank_copula_cdf(u, alpha)
+        y = _frank(u, alpha)
     elif(family_lc=='gumbel'):
         if(num_var_args!=1):
             raise ValueError("Gumbel family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
         if(type(alpha)!=float):
             raise ValueError('Clayton family requires a scalar alpha value')
-        y = gumbel_copula_cdf(u, alpha)
+        y = _gumbel(u, alpha)
     else:
         raise ValueError("Unrecognized family of copula")
     
     return y
 
-def gaussian_copula_cdf(u, rho):
+def _gaussian(u, rho):
     """ Generates values of the Gaussian copula
     
     Inputs:
@@ -118,10 +119,10 @@ def gaussian_copula_cdf(u, rho):
     
     return y
 
-def t_copula_cdf(u, rho, n):
-    pass
+def _t(u, rho, n):
+    return None
 
-def clayton_copula_cdf(u, alpha):
+def _clayton(u, alpha):
     # C(u1,u2) = (u1^(-alpha) + u2^(-alpha) - 1)^(-1/alpha)
     if(alpha<0):
         raise ValueError("Clayton family -- invalid alpha argument. alpha must be >=0")
@@ -134,7 +135,7 @@ def clayton_copula_cdf(u, alpha):
         
     return y
 
-def frank_copula_cdf(u, alpha):
+def _frank(u, alpha):
     # C(u1,u2) = -(1/alpha)*log(1 + (exp(-alpha*u1)-1)*(exp(-alpha*u2)-1)/(exp(-alpha)-1))
     if(alpha==0):
         y = np.prod(u,1)
@@ -144,7 +145,7 @@ def frank_copula_cdf(u, alpha):
         
     return y
 
-def gumbel_copula_cdf(u, alpha):
+def _gumbel(u, alpha):
     # C(u1,u2) = exp(-( (-log(u1))^alpha + (-log(u2))^alpha )^(1/alpha))
     n = u.shape[0]
     p = u.shape[1]
@@ -173,10 +174,10 @@ def test_python_vs_matlab(family):
     eps = np.finfo(float).eps
     u = np.linspace(0+eps,1-eps,n)
     UU = np.meshgrid(u,u)
-    U1 = np.reshape(UU[0], (UU[0].shape[0]*UU[0].shape[1], 1))
-    U2 = np.reshape(UU[1], (UU[1].shape[0]*UU[1].shape[1], 1))
+    U2 = np.reshape(UU[0], (UU[0].shape[0]*UU[0].shape[1], 1))
+    U1 = np.reshape(UU[1], (UU[1].shape[0]*UU[1].shape[1], 1))
     U = np.concatenate((U1,U2),axis=1)
-    
+        
     rho = 0.8
     Rho = np.array([[1,rho],[rho,1]])
     
