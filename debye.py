@@ -31,5 +31,5 @@ def debye(x, n):
     # ensure n is a float
     n = float(n)
     
-    sol = integrate.quad( lambda xi: pow(xi,n)/(np.exp(xi)-1.0) , 0.0, x)
+    sol = integrate.quad( lambda t: pow(t,n)/(np.exp(t)-1.0) , 0.0, x)
     return n*sol[0]/pow(x,n)

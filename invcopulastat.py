@@ -23,6 +23,9 @@ import math
 import numpy as np
 
 from debye import debye
+from scipy.optimize import fsolve
+
+from copulastat import copulastat
 
 """
 invcopulastat.py contains routines which provide the inverse copula dependency 
@@ -36,19 +39,16 @@ def invcopulastat(family, dependency, val):
     dependency_lc = dependency.lower()
     if(dependency_lc!='kendall' and dependency_lc!='spearman'):
         raise ValueError('Invalid dependency argument -- must be kendall or spearman')
-    val = args[0]
-    if(val<-1 or val>1):
-        raise ValueError('Range of dependency argument must be between +/- 1')
     if(family.lower()=='gaussian'):
         r = _gaussian(dependency_lc, val)
     elif(family.lower()=='t'):
         r = None
     elif(family.lower()=='clayton'):
-        r = _clayton(dependency_lc, dep_param)
+        r = _clayton(dependency_lc, val)
     elif(family.lower()=='gumbel'):
-        r = _gumbel(dependency_lc, dep_param)
+        r = _gumbel(dependency_lc, val)
     elif(family.lower()=='frank'):
-        r = _frank(dependency_lc, dep_param)
+        r = _frank(dependency_lc, val)
     else:
         raise ValueError('Unsupported Copula Family!')
     
@@ -81,12 +81,67 @@ def _gumbel(dependency, val):
     
     return d
 
+def _frank_kendall_fopt(alpha, tau):
+    return 4*( debye(alpha,1) - 1 )/alpha + 1 - tau
+
 def _frank(dependency, val):
     if(dependency=='kendall'):
-        # TODO --  use function solvers in scipy to invert debye function for the closed form solution
-        pass
+        return fsolve(_frank_kendall_fopt, 1, args=(val))
     elif(dependency=='spearman'):
         # TODO --  use function solvers in scipy to invert debye function for the closed form solution
         raise ValueError('Spearmans Rho currently unsupported for Frank Copula family!')
     
     return r
+
+def test_python_vs_matlab(family):
+    # DISCLAIMER: this code assumes copulastat is working properly and tested
+    
+    if(family.lower()=='gaussian'):
+        dependency = 'kendall'
+        rho = 0.3
+        rho_calc = invcopulastat(family, dependency, copulastat(family, dependency, rho))
+        p1 = np.isclose(rho, rho_calc)
+        
+        rho = 0.7
+        rho_calc = invcopulastat(family, dependency, copulastat(family, dependency, rho))
+        p2 = np.isclose(rho, rho_calc)
+        
+        dependency = 'spearman'
+        rho = 0.3
+        rho_calc = invcopulastat(family, dependency, copulastat(family, dependency, rho))
+        p3 = np.isclose(rho, rho_calc)
+        
+        rho = 0.7
+        rho_calc = invcopulastat(family, dependency, copulastat(family, dependency, rho))
+        p4 = np.isclose(rho, rho_calc)
+        
+        if(p1 and p2 and p3 and p4):
+            print 'Gaussian CopulaStat tests PASSED!'
+        else:
+            print 'Gaussian CopulaStat tests FAILED!'
+        
+    elif(family.lower()=='t'):
+        pass
+    
+    elif(family.lower()=='clayton' or family.lower()=='gumbel' or family.lower()=='frank'):
+        dependency = 'kendall'
+        alpha = 0.3
+        tau = copulastat(family, dependency, alpha)
+        alpha_calc = invcopulastat(family, dependency, tau)
+        p1 = np.isclose(alpha, alpha_calc)
+        
+        alpha = 0.7
+        tau = copulastat(family, dependency, alpha)
+        alpha_calc = invcopulastat(family, dependency, tau)
+        p2 = np.isclose(alpha, alpha_calc)
+        
+        if(p1 and p2):
+            print family + ' CopulaStat tests PASSED!'
+        else:
+            print family + ' CopulaStat tests FAILED!'
+    
+if __name__=='__main__':    
+    test_python_vs_matlab('Gaussian')
+    test_python_vs_matlab('Clayton')
+    test_python_vs_matlab('Gumbel')
+    test_python_vs_matlab('Frank')
