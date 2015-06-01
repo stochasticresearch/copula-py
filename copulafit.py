@@ -52,8 +52,8 @@ def copulafit(family, X, algorithm):
         'MLE'  - Maximum Likelihood method
         'AMLE' - Approximate Maximum Likelihood method
         'PKTE' - Use's Pairwise Kendall's Tau estimator's relationship to the 
-                       copula family's dependency parameter (only applicalble to
-                       Clayton, Gumbel, or Frank copula's currently)
+                       copula family's dependency parameter (only applicalble
+                       to Clayton, Gumbel, or Frank copula's currently)
                        
     Outputs:
       the dependency parameter for the copula
@@ -91,6 +91,7 @@ def _guassian_PKTE(X):
     for dim1 in range(0,N-1):
         for dim2 in range(dim1+1,N):
             rho = np.sin(math.pi/2 * kendalltau(X[:,dim1],X[:,dim2]))
+            # correlation matrix is symmetric
             sigma_hat[dim1][dim2] = rho
             sigma_hat[dim2][dim1] = rho
 

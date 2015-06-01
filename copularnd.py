@@ -44,7 +44,7 @@ def copularnd(family, n, *args):
                 Clayton/Frank/Gumbel - should be provided a scalar alpha value
     
     Outputs:
-    U -- a 2xn matrix of samples from the copula density chosen
+    U -- a n x 2 matrix of samples from the copula density chosen
     """
 
     num_var_args = len(args)
@@ -83,21 +83,21 @@ def copularnd(family, n, *args):
 def _gaussian(n, Rho):
     """
     Generates samples from the Gaussian Copula, w/ dependency
-    matrix described by Rho.  Rho should be a numpy 2x2 matrix.
+    matrix described by Rho.  Rho should be a numpy square matrix.
     It is assumed that we have a 0 mean.
     """
-    mu = [0,0]
+    mu = np.zeros((1,2))
     # TODO: some error checking on Rho to make sure it is 2x2?
     y = multivariate_normal(mu,Rho)
     
     # generate samples of the multivariate normal distribution
     # and apply normal cdf to generate U
-    U = np.empty((2,n))
+    U = np.empty((n,2))
     
     for ii in range(0,n):
         mvnData = y.rvs()
-        U[0][ii] = norm.cdf(mvnData[0])
-        U[1][ii] = norm.cdf(mvnData[1])
+        U[ii][0] = norm.cdf(mvnData[0])
+        U[ii][1] = norm.cdf(mvnData[1])
     
     return U
     
@@ -120,7 +120,7 @@ def _clayton(n, alpha):
     else:
         u2 = u1*np.power((np.power(p,(-alpha/(1.0+alpha))) - 1 + np.power(u1,alpha)),(-1.0/alpha))
         
-    U = np.vstack((u1,u2))
+    U = np.hstack((u1,u2))
     return U
 
 def _frank(n, alpha):
@@ -133,7 +133,7 @@ def _frank(n, alpha):
     else:
         u2 = p
     
-    U = np.vstack((u1,u2))
+    U = np.hstack((u1,u2))
     return U
 
 def _gumbel(n, alpha):
@@ -155,7 +155,7 @@ def _gumbel(n, alpha):
         u1 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
         u2 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
         
-    U = np.vstack((u1,u2))
+    U = np.hstack((u1,u2))
     return U
 
 if __name__=='__main__':
@@ -170,25 +170,25 @@ if __name__=='__main__':
     Uf  = copularnd('frank', n,alpha)
     Ugu = copularnd('gumbel', n,alpha)
     
-    plt.scatter(Ug[0,:],Ug[1,:])
+    plt.scatter(Ug[:,0],Ug[:,1])
     plt.title('Gaussian Copula Samples')
     plt.grid()
     plt.axis((0,1,0,1))
     plt.show()
     
-    plt.scatter(Uc[0,:],Uc[1,:])
+    plt.scatter(Uc[:,0],Uc[:,1])
     plt.title('Clayton Copula Samples')
     plt.grid()
     plt.axis((0,1,0,1))
     plt.show()
     
-    plt.scatter(Uf[0,:],Uf[1,:])
+    plt.scatter(Uf[:,0],Uf[:,1])
     plt.title('Frank Copula Samples')
     plt.grid()
     plt.axis((0,1,0,1))
     plt.show()
     
-    plt.scatter(Ugu[0,:],Ugu[1,:])
+    plt.scatter(Ugu[:,0],Ugu[:,1])
     plt.title('Gumbel Copula Samples')
     plt.grid()
     plt.axis((0,1,0,1))
