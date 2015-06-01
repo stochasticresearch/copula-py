@@ -86,7 +86,7 @@ def _gaussian(n, Rho):
     matrix described by Rho.  Rho should be a numpy square matrix.
     It is assumed that we have a 0 mean.
     """
-    mu = np.zeros((1,2))
+    mu = [0,0]
     # TODO: some error checking on Rho to make sure it is 2x2?
     y = multivariate_normal(mu,Rho)
     
@@ -119,8 +119,9 @@ def _clayton(n, alpha):
         u2 = p
     else:
         u2 = u1*np.power((np.power(p,(-alpha/(1.0+alpha))) - 1 + np.power(u1,alpha)),(-1.0/alpha))
-        
-    U = np.hstack((u1,u2))
+    
+    U = np.column_stack((u1,u2))
+    
     return U
 
 def _frank(n, alpha):
@@ -133,7 +134,7 @@ def _frank(n, alpha):
     else:
         u2 = p
     
-    U = np.hstack((u1,u2))
+    U = np.column_stack((u1,u2))
     return U
 
 def _gumbel(n, alpha):
@@ -155,7 +156,7 @@ def _gumbel(n, alpha):
         u1 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
         u2 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
         
-    U = np.hstack((u1,u2))
+    U = np.column_stack((u1,u2))
     return U
 
 if __name__=='__main__':
