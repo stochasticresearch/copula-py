@@ -26,6 +26,8 @@ from scipy.stats import mvn                     # contains inverse CDF of Multiv
 from scipy.stats import norm                    # contains PDF of Gaussian
 
 from numpy.linalg import solve
+from numpy.linalg import cholesky
+from numpy.linalg import LinAlgError
 
 """
 copulapdf.py contains routines which provide Copula PDF values 
@@ -90,18 +92,16 @@ def copulapdf(family, u, *args):
 def _gaussian(u, rho):
     matlab_data = scipy.io.loadmat('matlab/copulapdf_test.mat')
     
-    # TODO: check to see if rho is singular?
-    R = rho
+    try:
+        R = cholesky(rho)
+    except LinAlgError:
+        raise ValueError('Provided Rho matrix is not Positive Definite!')
     
     x = norm.ppf(u)
     logSqrtDetRho = np.sum(np.log(np.diag(R)))
     z = solve(R,x.T)
-    z = z.T
+    z = z.T    
     y = np.exp(-0.5 * np.sum(  np.power(z,2) - np.power(x,2) ,  axis=1  ) - logSqrtDetRho)
-    
-    print(np.allclose(x,matlab_data['x']))
-    print(np.allclose(logSqrtDetRho,matlab_data['logSqrtDetRho']))
-    
     
     return y
 
@@ -141,12 +141,7 @@ def test_python_vs_matlab(family):
     
     if(family.lower()=='gaussian'):
         gaussian_copula_pdf_python = copulapdf(family,U,Rho)
-        gaussian_copula_pdf_matlab = matlab_data['gaussian_copula_pdf']
-        gaussian_copula_pdf_matlab = gaussian_copula_pdf_matlab[:,0]
-        
-        #leng = gaussian_copula_pdf_matlab.shape[0]
-        #for ii in range(0,leng):
-        #    print gaussian_copula_pdf_python[ii], gaussian_copula_pdf_matlab[ii]
+        gaussian_copula_pdf_matlab = matlab_data['gaussian_copula_pdf'][:,0]
         
         # compare the two
         gaussian_copula_test_result = np.allclose(gaussian_copula_pdf_python,gaussian_copula_pdf_matlab)
