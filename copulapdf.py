@@ -31,6 +31,8 @@ from numpy.linalg import solve
 from numpy.linalg import cholesky
 from numpy.linalg import LinAlgError
 
+from copulacdf import copulacdf
+
 """
 copulapdf.py contains routines which provide Copula PDF values 
 """
@@ -112,8 +114,6 @@ def _gaussian(u, rho):
     return y
 
 def _t(u, rho, nu):
-    matlab_data = scipy.io.loadmat('matlab/copulapdf_test.mat')
-    
     d = u.shape[1]
     nu = float(nu)
     
@@ -137,13 +137,51 @@ def _t(u, rho, nu):
     return y
 
 def _clayton(u, alpha):
-    return None
+    n = u.shape[0]
+    d = u.shape[1]
+    if(d>2):
+        raise ValueError('Maximum dimensionality supported is 2 for the Clayton Copula Family')
+    if alpha<0:
+        raise ValueError('Dependency parameter for Clayton copula must be >= 0')
+    elif alpha==0:
+        y = np.ones((n,1))
+    else:
+        # below is the closed form of d2C/dudv of the Clayton copula
+        y = (alpha + 1) * np.power( u[:,0]*u[:,1], -1*(alpha+1) ) * np.power( np.power(u[:,0], -alpha) + np.power(u[:,1], -alpha) - 1, -1*(2*alpha+1)/alpha )
+    
+    return y
 
 def _frank(u, alpha):
-    return None
+    if alpha == 0:
+        y = ones(n,1);
+    else:
+        summer = np.sum(u,1)
+        differ = np.diff(u,1,1)
+        differ = differ[:,0]
+        denom = np.power(np.cosh(alpha*differ/2)*2 - np.exp(alpha*(summer-2)/2) - np.exp(-alpha*summer/2), 2)
+        y = alpha*(1-np.exp(-alpha)) / denom
+        
+    return y
 
-def _gumbel(u, alpha):
-    return None
+def _gumbel(U, alpha):
+    n = U.shape[0]
+    d = U.shape[1]
+    if(d>2):
+        raise ValueError('Maximum dimensionality supported is 2 for the Gumbel Copula Family')
+    
+    if(alpha < 1):
+        raise ValueError('Bad dependency parameter for Gumbel copula')
+    elif alpha==1:
+        y = np.ones((n,1))
+    else:
+        # below is the closed form of d2C/dudv of the Gumbel copula
+        C = copulacdf('Gumbel', U, alpha)
+        u = U[:,0]
+        v = U[:,1]
+        p1 = C*1.0/(u*v)*np.power(np.power(-1*np.log(u),alpha) + np.power(-1*np.log(v),alpha), -2.0 + 2.0/alpha)*np.power(np.log(u)*np.log(v),alpha-1.0)
+        p2 = 1.0 + (alpha - 1.0)*np.power(np.power(-1*np.log(u),alpha) + np.power(-1*np.log(v),alpha), -1.0/alpha )
+        y = p1*p2
+    return y
 
 def test_python_vs_matlab(family):
     # generate U1, U2
@@ -179,7 +217,7 @@ def test_python_vs_matlab(family):
         else:
             print 'Gaussian Copula Python calculation does NOT match Matlab!'
             
-        # plot the Guassian Copula for fun
+        # plot the Copula for fun
         X = UU[0]
         Y = UU[1]
         Z = np.reshape(gaussian_copula_pdf_python,UU[0].shape)
@@ -197,16 +235,74 @@ def test_python_vs_matlab(family):
         else:
             print 'T Copula Python calculation does NOT match Matlab!'
             
-        # plot the Guassian Copula for fun
+        # plot the Copula for fun
         X = UU[0]
         Y = UU[1]
         Z = np.reshape(t_copula_pdf_python,UU[0].shape)
         
         plot_utils.plot_3d(X,Y,Z, 'T Copula PDF')
         
+    elif(family.lower()=='clayton'):
+        clayton_copula_pdf_python = copulapdf(family,U,alpha)
+        clayton_copula_pdf_matlab = matlab_data['clayton_copula_pdf'][:,0]
+        
+        # compare the two
+        clayton_copula_test_result = np.allclose(clayton_copula_pdf_python,clayton_copula_pdf_matlab)
+        if(clayton_copula_test_result):
+            print 'Clayton Copula Python calculation matches Matlab!'
+        else:
+            print 'Clayton Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(clayton_copula_pdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'Clayton Copula PDF')
+        
+    elif(family.lower()=='gumbel'):
+        alpha = 1.5
+        gumbel_copula_pdf_python = copulapdf(family,U,alpha)
+        gumbel_copula_pdf_matlab = matlab_data['gumbel_copula_pdf'][:,0]
+        
+        # compare the two
+        gumbel_copula_test_result = np.allclose(gumbel_copula_pdf_python,gumbel_copula_pdf_matlab)
+        if(gumbel_copula_test_result):
+            print 'Gumbel Copula Python calculation matches Matlab!'
+        else:
+            print 'Gumbel Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(gumbel_copula_pdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'Gumbel Copula PDF')
+        
+    elif(family.lower()=='frank'):
+        frank_copula_pdf_python = copulapdf(family,U,alpha)
+        frank_copula_pdf_matlab = matlab_data['frank_copula_pdf'][:,0]
+        
+        # compare the two
+        frank_copula_test_result = np.allclose(frank_copula_pdf_python,frank_copula_pdf_matlab)
+        if(frank_copula_test_result):
+            print 'Frank Copula Python calculation matches Matlab!'
+        else:
+            print 'Frank Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(frank_copula_pdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'Frank Copula PDF')
+    
 if __name__=='__main__':
     import scipy.io
     import plot_utils
     
     test_python_vs_matlab('Gaussian')
     test_python_vs_matlab('T')
+    test_python_vs_matlab('Clayton')
+    test_python_vs_matlab('Gumbel')
+    test_python_vs_matlab('Frank')

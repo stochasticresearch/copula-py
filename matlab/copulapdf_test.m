@@ -18,10 +18,6 @@ gaussian_copula_pdf = copulapdf('gaussian',[U1(:) U2(:)], Rho);
 nu = 2;
 t_copula_pdf = copulapdf('t',[U1(:) U2(:)], Rho, nu);
 
-u = linspace(0+eps,1-eps,10);
-d = 2;
-[U1,U2] = meshgrid(u,u);
-
 % Generate samples of the Clayton copula
 alpha = 0.3;
 clayton_copula_pdf = copulapdf('clayton',[U1(:) U2(:)], alpha);
