@@ -24,6 +24,8 @@ import numpy as np
 
 from scipy.stats import mvn                     # contains inverse CDF of Multivariate Gaussian
 from scipy.stats import norm                    # contains PDF of Gaussian
+from scipy.stats import t
+from scipy.special import gammaln
 
 from numpy.linalg import solve
 from numpy.linalg import cholesky
@@ -61,8 +63,14 @@ def copulapdf(family, u, *args):
         y = _gaussian(u, rho)
         
     elif(family_lc=='t'):
-        # TODO: fix me :)
-        return None
+        rho = args[0]
+        rho_expected_shape = (p,p)
+        if(type(rho)!=np.ndarray or rho.shape!=rho_expected_shape):
+            raise ValueError("T family requires rho to be of type numpy.ndarray with shape=[P x P]")
+        nu = int(args[1])       # force to be an integer
+        if(nu<1):
+            raise ValueError("T family Degrees of Freedom argument must be an integer >= 1")
+        return _t(u, rho, nu)
     elif(family_lc=='clayton'):
         if(num_var_args!=1):
             raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
@@ -90,23 +98,43 @@ def copulapdf(family, u, *args):
     return y
 
 def _gaussian(u, rho):
-    matlab_data = scipy.io.loadmat('matlab/copulapdf_test.mat')
-    
     try:
         R = cholesky(rho)
     except LinAlgError:
         raise ValueError('Provided Rho matrix is not Positive Definite!')
     
     x = norm.ppf(u)
-    logSqrtDetRho = np.sum(np.log(np.diag(R)))
     z = solve(R,x.T)
-    z = z.T    
+    z = z.T
+    logSqrtDetRho = np.sum(np.log(np.diag(R)))
     y = np.exp(-0.5 * np.sum(  np.power(z,2) - np.power(x,2) ,  axis=1  ) - logSqrtDetRho)
     
     return y
 
 def _t(u, rho, nu):
-    return None
+    matlab_data = scipy.io.loadmat('matlab/copulapdf_test.mat')
+    
+    d = u.shape[1]
+    nu = float(nu)
+    
+    try:
+        R = cholesky(rho)
+    except LinAlgError:
+        raise ValueError('Provided Rho matrix is not Positive Definite!')
+    
+    ticdf = t.ppf(u, nu)
+    
+    z = solve(R,ticdf.T)
+    z = z.T
+    logSqrtDetRho = np.sum(np.log(np.diag(R)))
+    const = gammaln((nu+d)/2.0) + (d-1)*gammaln(nu/2.0) - d*gammaln((nu+1)/2.0) - logSqrtDetRho
+    sq = np.power(z,2)
+    summer = np.sum(np.power(z,2),axis=1)
+    numer = -((nu+d)/2.0) * np.log(1.0 + np.sum(np.power(z,2),axis=1)/nu)
+    denom = np.sum(-((nu+1)/2) * np.log(1 + (np.power(ticdf,2))/nu), axis=1)
+    y = np.exp(const + numer - denom)
+    
+    return y
 
 def _clayton(u, alpha):
     return None
@@ -132,6 +160,7 @@ def test_python_vs_matlab(family):
     
     rho = 0.8
     Rho = np.array([[1,rho],[rho,1]])
+    nu = 2
     
     alpha = 0.3
     
@@ -156,9 +185,28 @@ def test_python_vs_matlab(family):
         Z = np.reshape(gaussian_copula_pdf_python,UU[0].shape)
         
         plot_utils.plot_3d(X,Y,Z, 'Gaussian Copula PDF')
+    
+    elif(family.lower()=='t'):
+        t_copula_pdf_python = copulapdf(family,U,Rho,nu)
+        t_copula_pdf_matlab = matlab_data['t_copula_pdf'][:,0]
+        
+        # compare the two
+        t_copula_test_result = np.allclose(t_copula_pdf_python,t_copula_pdf_matlab)
+        if(t_copula_test_result):
+            print 'T Copula Python calculation matches Matlab!'
+        else:
+            print 'T Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Guassian Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(t_copula_pdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'T Copula PDF')
         
 if __name__=='__main__':
     import scipy.io
     import plot_utils
     
     test_python_vs_matlab('Gaussian')
+    test_python_vs_matlab('T')
