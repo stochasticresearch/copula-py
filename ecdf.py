@@ -22,11 +22,13 @@
 import math
 import numpy as np
 
+from scipy.interpolate import interp1d
+
 """
 e_cdf.py contains routines which help perform empirical CDF Estimation.
 """
 
-def e_cdf(x_i, npoints):
+def ecdf(x_i, npoints):
     """ Generates an Empirical CDF using the indicator function.
     
     Inputs:
@@ -62,10 +64,37 @@ def kde_integral(kde):
     
     return y
 
+def probability_integral_transform(X):
+    """
+    Takes a data array X of dimension [M x N], and converts it to a uniform
+    random variable using the probability integral transform, U = F(X)
+    """
+    M = X.shape[0]
+    N = X.shape[1]
+    
+    # convert X to U by using the probability integral transform:  F(X) = U
+    U = np.empty(X.shape)
+    for ii in range(0,N):
+        x_ii = X[:,ii]
+        
+        # estimate the empirical cdf    
+        (xx,pp) = ecdf(x_ii, M)
+        f = interp1d(xx, pp)    # TODO: experiment w/ different kinds of interpolation?
+                                # for example, cubic, or spline etc...?
+        
+        # plug this RV sample into the empirical cdf to get uniform RV
+        u_ii = f(x_ii)
+        U[:,ii] = u_ii
+        
+    return U
+
 if __name__=='__main__':
     import matplotlib.pyplot as plt
     import sys
     import kde
+    
+    from scipy.stats import norm
+    from scipy.stats import expon
     
     # test the E_CDF estimation
     N1 = 100 # number of data in data set 1
@@ -91,7 +120,7 @@ if __name__=='__main__':
     n, bins, patches = plt.hist(x, 50, normed=1, facecolor='green', alpha=0.75, label='Histogram')
     
     # empirical CDF
-    (xx,pp) = e_cdf(x, npoints)
+    (xx,pp) = ecdf(x, npoints)
     plt.plot(xx,pp, 'k', label='Empirical CDF')
     
     # Smooth Empirical CDF (KDE Integral)
@@ -99,3 +128,24 @@ if __name__=='__main__':
     plt.plot(xx,kde_integral, 'm', label='Smooth Empirical CDF')
     plt.legend(loc='upper left')
     plt.show()
+    
+    # test the probability integral transform
+    M = 100
+    N = 2
+    X = np.empty((M,N))
+    X[:,0] = norm.rvs(size=M)
+    X[:,1] = expon.rvs(size=M)
+    
+    U = probability_integral_transform(X)
+    
+    f, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    ax1.hist(X[:,0])
+    ax1.set_title('Guassian RV')
+    ax2.hist(U[:,0])
+    ax2.set_title('Gaussian Transformed to Uniform')
+    ax3.hist(X[:,1])
+    ax3.set_title('Exponential RV')
+    ax4.hist(U[:,1])
+    ax4.set_title('Exponential Transformed to Uniform')
+    plt.show()
+    

@@ -1,0 +1,22 @@
+copulacdf.py
+  [ ] - t copula
+  
+copularnd.py
+  [ ] - t copula
+  
+copulafit.py
+  [ ] - t copula PKTE estimation
+  [ ] - MLE estimation for all copula types
+  [ ] - AMLE estimation for all copula types 
+  
+copulapdf.py
+  [ ] - 
+  
+copulastat.py
+  [ ] - t copula
+  
+invcopulastat.py
+  [ ] - t copula
+  
+copulamnsig.py
+  [ ] - a first order test on empirical multinomial signature generation

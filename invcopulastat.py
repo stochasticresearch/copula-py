@@ -63,7 +63,7 @@ def _gaussian(dependency, val):
 
 # TODO: all studnet-t related stuff
 def _t(dependency, val):
-    pass
+    return None
 
 def _clayton(dependency, val):
     if(dependency=='kendall'):

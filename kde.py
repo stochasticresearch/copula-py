@@ -185,69 +185,61 @@ if __name__=='__main__':
     if(False):
         # Plot the Uniform Kernel
         x_i = np.linspace(-2,2,100)
+        
         y = uniform_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Uniform Kernel')
         plt.show()
         
         # Plot the Triangle Kernel
-        x_i = np.linspace(-2,2,100)
         y = triangle_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Triangle Kernel')
         plt.show()
         
         # Plot the Epanechnikov Kernel
-        x_i = np.linspace(-2,2,100)
         y = epanechnikov_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Epanechnikov Kernel')
         plt.show()
         
         # Plot the Quartic Kernel
-        x_i = np.linspace(-2,2,100)
         y = quartic_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Quartic Kernel')
         plt.show()
         
         # Plot the Triweight Kernel
-        x_i = np.linspace(-2,2,100)
         y = triweight_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Triweight Kernel')
         plt.show()
         
         # Plot the Tricube Kernel
-        x_i = np.linspace(-2,2,100)
         y = tricube_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Tricube Kernel')
         plt.show()
         
         # Plot the Gaussian Kernel
-        x_i = np.linspace(-2,2,100)
         y = gaussian_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Gaussian Kernel')
         plt.show()
         
         # Plot the Cosine Kernel
-        x_i = np.linspace(-2,2,100)
         y = cosine_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Cosine Kernel')
         plt.show()
         
         # Plot the Logistic Kernel
-        x_i = np.linspace(-2,2,100)
         y = logistic_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Logistic Kernel')
         plt.show()
         
         # Plot the Silverman Kernel
-        x_i = np.linspace(-2,2,100)
         y = silverman_kernel(x_i)
         plt.plot(x_i,y)
         plt.title('Silverman Kernel')
