@@ -25,9 +25,6 @@ import numpy as np
 from cvolume import cvolume
 import multivariate_stats
 
-from scipy.stats import norm
-from scipy.stats import expon
-
 from ecdf import probability_integral_transform
 
 def copulamnsig(family, tau, K):
@@ -63,8 +60,9 @@ def copulamnsig(family, tau, K):
     # left coordinates of the box and the upper right coordinates of the box
     # are stored as keys 'u1v1' and 'u2v2', and then the actual value of the 
     # multinomial signature in that grid is stored as 'val'
+    #mnsig = []
+    
     mnsig = []
-            
     for coord in coords_list:
         # compute the C-volume and store
         u1v1 = coord[0]
@@ -72,13 +70,14 @@ def copulamnsig(family, tau, K):
         u2v1 = coord[2]
         u2v2 = coord[3]
         val = cvolume(family, u1v1, u1v2, u2v1, u2v2, 'kendall', tau)
-        tmp = {}
-        tmp['u1v1'] = u1v1
-        tmp['u1v2'] = u1v2
-        tmp['u2v1'] = u2v1
-        tmp['u2v2'] = u2v2
-        tmp['val']  = val
-        mnsig.append(tmp)
+        #tmp = {}
+        #tmp['u1v1'] = u1v1
+        #tmp['u1v2'] = u1v2
+        #tmp['u2v1'] = u2v1
+        #tmp['u2v2'] = u2v2
+        #tmp['val']  = val
+        #mnsig.append(tmp)
+        mnsig.append(val[0])
     
     return mnsig
 
@@ -127,8 +126,7 @@ def empirical_copulamnsig(X, K):
             # RV 2 that we are comparing
             tmp['rv2'] = dim2+1
             # the value for the zone -- initialize to 0
-            for ii in range(1,K*K+1):
-                tmp[str(ii)] = 0.0
+            esig_vec = np.zeros(K*K)
             
             # there is probably a more efficient way to do this than to loop
             # over each value, but this is a first cut at implementing this
@@ -138,17 +136,20 @@ def empirical_copulamnsig(X, K):
             for ii in range(0,M):
                 # find which zone this specific (u,v) sample falls in
                 for jj in range(0,K*K):
-                    u1 = coords_list[jj][0][0][0][0]
-                    v1 = coords_list[jj][0][0][0][1]
-                    u2 = coords_list[jj][0][3][0][0]
-                    v2 = coords_list[jj][0][3][0][1]
+                    u1 = coords_list[jj][0][0][0]
+                    v1 = coords_list[jj][0][0][1]
+                    u2 = coords_list[jj][3][0][0]
+                    v2 = coords_list[jj][3][0][1]
                     
-                    if(u(ii) >= u1 and u(ii) < u2 and 
-                       v(ii) >= v1 and v(ii) < v2):
+                    if(u[ii] >= u1 and u[ii] < u2 and 
+                       v[ii] >= v1 and v[ii] < v2):
                         # add one to the zone that it falls into
-                        tmp[str(jj)] = tmp[str(jj)] / float(M) 
+                        esig_vec[jj] = (esig_vec[jj] + 1.0/M)
                         # process the next pair by kicking out of this loop
                         break
+            tmp['esig'] = esig_vec
+            
+            esig.append(tmp)
         
     return esig
 
@@ -188,6 +189,11 @@ def _makeCoordsList(K):
 
 if __name__=='__main__':
 
+    from copularnd import copularnd
+    from invcopulastat import invcopulastat
+    from scipy.stats import norm
+    from scipy.stats import expon
+
     # some tests on the copula multinomial signature
     tau = 0.4
     K = 4
@@ -195,13 +201,61 @@ if __name__=='__main__':
     # iterate through mnsig to make sure we add upto 1 as a simple sanity check
     val_total = 0
     for ii in range(0,len(mnsig)):
-        val_total = val_total + mnsig[ii]['val']
+        val_total = val_total + mnsig[ii]  #['val']
         
     if(np.isclose(val_total, 1.0)):
         print 'CopulaMNSig total probability check passed!'
     else:
         print 'CopulaMNSig total probability check failed!'
     
-    # TODO:
-    # some tests on the empirical copula multinomial signature calculation
-    # generate a marginal to be normal, and another to be exponential
+    M = 1000
+    
+    ###################### GUMBEL COPULA EXPERIMENT #######################
+    # generate samples of the gumbel copula with tau same as the
+    # empirical signature we calculated above
+    alpha = invcopulastat('Gumbel', 'kendall', tau)
+    U = copularnd('Gumbel', M, alpha)
+    
+    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+    
+    # combine X and Y into the joint distribution w/ the copula
+    X = np.vstack((X1,X2))
+    X = X.T
+        
+    # calculate the empirical multinomial signature
+    emp_gumbel_mnsig = empirical_copulamnsig(X, K)
+    
+    ###################### FRANK COPULA EXPERIMENT #######################
+    alpha = invcopulastat('Frank', 'kendall', tau)
+    U = copularnd('Frank', M, alpha)
+    
+    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+    
+    # combine X and Y into the joint distribution w/ the copula
+    X = np.vstack((X1,X2))
+    X = X.T
+        
+    # calculate the empirical multinomial signature
+    emp_frank_mnsig = empirical_copulamnsig(X, K)
+    
+    ###################### CLAYTON COPULA EXPERIMENT #######################
+    alpha = invcopulastat('Clayton', 'kendall', tau)
+    U = copularnd('Clayton', M, alpha)
+    
+    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+    
+    # combine X and Y into the joint distribution w/ the copula
+    X = np.vstack((X1,X2))
+    X = X.T
+        
+    # calculate the empirical multinomial signature
+    emp_clayton_mnsig = empirical_copulamnsig(X, K)
+    
+    # compare to theoretical multinomial signature
+    print mnsig
+    print emp_gumbel_mnsig[0]['esig']
+    print emp_frank_mnsig[0]['esig']
+    print emp_clayton_mnsig[0]['esig']

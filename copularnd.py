@@ -32,19 +32,19 @@ from scipy.stats import uniform
 copularnd.py contains routines which provide samples of a copula density
 """
 
-def copularnd(family, n, *args):
+def copularnd(family, M, *args):
     """ Generates values of the Gaussian copula
     
     Inputs:
     family -- Should be either 'gaussian', 't', 'clayton', 'frank', or 'gumbel'
-    n      -- the number of samples to generate
+    M      -- the number of samples to generate
     args   -- variable number of arguments depending on which type of copula you are trying to simulate
                 Gaussian -- should be provided a 2x2 rho matrix as a numpy array datatype
                 t        -- should be provided a rho matrix and a nu value
                 Clayton/Frank/Gumbel - should be provided a scalar alpha value
     
     Outputs:
-    U -- a n x 2 matrix of samples from the copula density chosen
+    U -- a M x 2 matrix of samples from the copula density chosen
     """
 
     num_var_args = len(args)
@@ -56,7 +56,7 @@ def copularnd(family, n, *args):
         rho_expected_shape = (2,2)
         if(type(rho)!=np.ndarray or rho.shape!=rho_expected_shape):
             raise ValueError("Gaussian family requires rho to be of type numpy.ndarray with shape=[P x P]")
-        U = _gaussian(n, rho)
+        U = _gaussian(M, rho)
         
     elif(family_lc=='t'):
         return None
@@ -64,23 +64,23 @@ def copularnd(family, n, *args):
         if(num_var_args!=1):
             raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        U = _clayton(n, alpha)
+        U = _clayton(M, alpha)
     elif(family_lc=='frank'):
         if(num_var_args!=1):
             raise ValueError("Frank family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        U = _frank(n, alpha)
+        U = _frank(M, alpha)
     elif(family_lc=='gumbel'):
         if(num_var_args!=1):
             raise ValueError("Gumbel family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        U = _gumbel(n, alpha)
+        U = _gumbel(M, alpha)
     else:
         raise ValueError("Unrecognized family of copula")
     
     return U
 
-def _gaussian(n, Rho):
+def _gaussian(M, Rho):
     """
     Generates samples from the Gaussian Copula, w/ dependency
     matrix described by Rho.  Rho should be a numpy square matrix.
@@ -92,9 +92,9 @@ def _gaussian(n, Rho):
     
     # generate samples of the multivariate normal distribution
     # and apply normal cdf to generate U
-    U = np.empty((n,2))
+    U = np.empty((M,2))
     
-    for ii in range(0,n):
+    for ii in range(0,M):
         mvnData = y.rvs()
         U[ii][0] = norm.cdf(mvnData[0])
         U[ii][1] = norm.cdf(mvnData[1])
@@ -112,9 +112,9 @@ def _t():
 # inverting the conditional CDF.
 # This method is outlined in Nelsen's Introduction to Copula's
 
-def _clayton(n, alpha):
-    u1 = uniform.rvs(size=n)
-    p = uniform.rvs(size=n)
+def _clayton(M, alpha):
+    u1 = uniform.rvs(size=M)
+    p = uniform.rvs(size=M)
     if(alpha<np.spacing(1)):
         u2 = p
     else:
@@ -124,9 +124,9 @@ def _clayton(n, alpha):
     
     return U
 
-def _frank(n, alpha):
-    u1 = uniform.rvs(size=n)
-    p = uniform.rvs(size=n)
+def _frank(M, alpha):
+    u1 = uniform.rvs(size=M)
+    p = uniform.rvs(size=M)
     if abs(alpha) > math.log(sys.float_info.max):
         u2 = (u1 < 0).astype(int) + np.sign(alpha)*u1  # u1 or 1-u1
     elif abs(alpha) > math.sqrt(np.spacing(1)):
@@ -137,39 +137,39 @@ def _frank(n, alpha):
     U = np.column_stack((u1,u2))
     return U
 
-def _gumbel(n, alpha):
+def _gumbel(M, alpha):
     if alpha < 1:
         raise ValueError('Bad Gumbel Dependency Parameter!')
     if alpha < (1 + math.sqrt(np.spacing(1))):
-        u1 = uniform.rvs(size=n);
-        u2 = uniform.rvs(size=n);
+        u1 = uniform.rvs(size=M);
+        u2 = uniform.rvs(size=M);
     else:
         # use the Marshal-Olkin method
         # Generate gamma as Stable(1/alpha,1), c.f. Devroye, Thm. IV.6.7
-        u = (uniform.rvs(size=n) - .5) * math.pi # Generate n uniformly distributed RV's between -pi/2 and pi/2
+        u = (uniform.rvs(size=M) - .5) * math.pi # Generate M uniformly distributed RV's between -pi/2 and pi/2
         u2 = u + math.pi/2
-        e  = -1*np.log(uniform.rvs(size=n))
+        e  = -1*np.log(uniform.rvs(size=M))
         t = np.cos(u - u2/alpha)/e
         gamma = np.power(np.sin(u2/alpha)/t,(1.0/alpha)) * t/np.cos(u);
         
         # Frees&Valdez, eqn 3.5
-        u1 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
-        u2 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=n)), 1.0/alpha) / gamma) )
+        u1 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=M)), 1.0/alpha) / gamma) )
+        u2 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=M)), 1.0/alpha) / gamma) )
         
     U = np.column_stack((u1,u2))
     return U
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt
-    n = 1000
+    M = 1000
     rh = 0.6
     Rho = np.array([[1,rh],[rh,1]])
     alpha = 5
     
-    Ug = copularnd('gaussian', n, Rho)
-    Uc  = copularnd('clayton', n,alpha)
-    Uf  = copularnd('frank', n,alpha)
-    Ugu = copularnd('gumbel', n,alpha)
+    Ug = copularnd('gaussian', M, Rho)
+    Uc  = copularnd('clayton', M,alpha)
+    Uf  = copularnd('frank', M,alpha)
+    Ugu = copularnd('gumbel', M,alpha)
     
     plt.scatter(Ug[:,0],Ug[:,1])
     plt.title('Gaussian Copula Samples')
