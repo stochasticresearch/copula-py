@@ -63,22 +63,16 @@ def copulacdf(family, u, *args):
         if(num_var_args!=1):
             raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        if(type(alpha)!=float):
-            raise ValueError('Clayton family requires a scalar alpha value')
         y = _clayton(u, alpha)
     elif(family_lc=='frank'):
         if(num_var_args!=1):
             raise ValueError("Frank family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        if(type(alpha)!=float):
-            raise ValueError('Clayton family requires a scalar alpha value')
         y = _frank(u, alpha)
     elif(family_lc=='gumbel'):
         if(num_var_args!=1):
             raise ValueError("Gumbel family requires one additional argument -- alpha [scalar]")
         alpha = args[0]
-        if(type(alpha)!=float):
-            raise ValueError('Clayton family requires a scalar alpha value')
         y = _gumbel(u, alpha)
     else:
         raise ValueError("Unrecognized family of copula")

@@ -26,6 +26,7 @@ from cvolume import cvolume
 import multivariate_stats
 
 from ecdf import probability_integral_transform
+from scipy.stats import entropy
 
 def copulamnsig(family, tau, K):
     """
@@ -186,6 +187,49 @@ def _makeCoordsList(K):
 #  2.) load the precomputed multinomial signature for that kendall's tau
 #      for all the copula families
 #  3.) minimize the distance metric
+def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 'Frank']):
+    """
+    This function, given a multivariate data set X, computes the best copula family which fits
+    the data, using the procedure described in the paper "Highly Efficient Learning of Mixed
+    Copula Networks," by Gal Elidan
+      
+      X - the multivariate dataset for which we desire the copula.  Must be a numpy array of 
+          dimension [M x N], where M is the number of data points, and N is the dimensionality
+          of the dataset
+      K - the square root of the number of grid points (for now, we assume square gridding of the
+          unit cube)
+      family_search - a list of all the copula families to search.  Currently, what is supported is
+          Gaussian, Clayton, Gumbel, and Frank.  As more copula's are added, the default list will
+          be expanded.
+    
+    """
+    # compute the empirical Kendall's Tau
+    tau = multivariate_stats.kendalls_tau(X)
+    
+    # compute empirical multinomial signature
+    empirical_mnsig = empirical_copulamnsig(X, K)
+    empirical_mnsig = empirical_mnsig[0]['esig']
+    
+    # compute the multinomial signature for each of the copula families specified
+    # and simultaneously compute the kullback leibler divergence between the empirical
+    # and the computed, and store that info
+    distances = {}
+    for family in family_search:
+        mnsig = copulamnsig(family,tau,K)
+        # compute KL divergence, see
+        # http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.stats.entropy.html
+        distances[family] = entropy(mnsig, empirical_mnsig)
+    
+    # search for the minimum distance, that is the optimal copula family to use
+    minDistance = 1000000
+    for family, distance in distances.iteritems():
+        if distance<minDistance:
+            minDistance = distance
+            optimalFamily = family
+    
+    depParams = invcopulastat(optimalFamily, 'kendall', tau)
+    
+    return (optimalFamily, depParams, tau)
 
 if __name__=='__main__':
 
@@ -223,8 +267,8 @@ if __name__=='__main__':
     X = np.vstack((X1,X2))
     X = X.T
         
-    # calculate the empirical multinomial signature
-    emp_gumbel_mnsig = empirical_copulamnsig(X, K)
+    ret = optimalCopulaFamily(X)
+    print 'Input: Gumbel Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
     
     ###################### FRANK COPULA EXPERIMENT #######################
     alpha = invcopulastat('Frank', 'kendall', tau)
@@ -237,8 +281,8 @@ if __name__=='__main__':
     X = np.vstack((X1,X2))
     X = X.T
         
-    # calculate the empirical multinomial signature
-    emp_frank_mnsig = empirical_copulamnsig(X, K)
+    ret = optimalCopulaFamily(X)
+    print 'Input: Frank Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
     
     ###################### CLAYTON COPULA EXPERIMENT #######################
     alpha = invcopulastat('Clayton', 'kendall', tau)
@@ -251,11 +295,8 @@ if __name__=='__main__':
     X = np.vstack((X1,X2))
     X = X.T
         
-    # calculate the empirical multinomial signature
-    emp_clayton_mnsig = empirical_copulamnsig(X, K)
+    ret = optimalCopulaFamily(X)
+    print 'Input: Clayton Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
     
-    # compare to theoretical multinomial signature
-    print mnsig
-    print emp_gumbel_mnsig[0]['esig']
-    print emp_frank_mnsig[0]['esig']
-    print emp_clayton_mnsig[0]['esig']
+    
+    # TODO: test for multivariate dataset, where # vars > 2
