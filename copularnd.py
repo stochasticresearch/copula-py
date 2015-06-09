@@ -86,18 +86,20 @@ def _gaussian(M, Rho):
     matrix described by Rho.  Rho should be a numpy square matrix.
     It is assumed that we have a 0 mean.
     """
-    mu = [0,0]
-    # TODO: some error checking on Rho to make sure it is 2x2?
+    
+    N = Rho.shape[0]
+    
+    mu = np.zeros(N)
     y = multivariate_normal(mu,Rho)
     
     # generate samples of the multivariate normal distribution
     # and apply normal cdf to generate U
-    U = np.empty((M,2))
+    U = np.empty((M,N))
     
     for ii in range(0,M):
         mvnData = y.rvs()
-        U[ii][0] = norm.cdf(mvnData[0])
-        U[ii][1] = norm.cdf(mvnData[1])
+        for jj in range(0,N):
+            U[ii][jj] = norm.cdf(mvnData[jj])
     
     return U
     
