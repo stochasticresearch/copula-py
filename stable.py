@@ -52,6 +52,11 @@ class stable:
         self.delta = delta
         self.pm = pm
         
+        self.testMode = False
+        
+    def enableTestMode(self):
+        self.testMode = True
+        
     def rvs(self, size=1):
         """
         Generates size number of random variates of the stable distribution
@@ -66,23 +71,32 @@ class stable:
         elif(self.pm==2):
             # NOT YET IMPLEMENTED ... I'm lazy and haven't implemented the DSTABLE 
             # function yet.  I don't need it for my purposes right now, but maybe
-            # in the future we can add it in, or someone else can :)
+            # in the future I can add it in, or someone else can :)
             raise NotImplementedError('Generating RVs for Parametrization of 2 not yet implemented!')
         # else pm is 0
         
         ## Calculate uniform and exponential distributed random numbers:
-        theta = math.pi * (uniform.rvs(size=n)-1.0/2.0)
-        w = -1*np.log(uniform.rvs(size=n))
+        uni1 = uniform.rvs(size=n)
+        uni2 = uniform.rvs(size=n)
+        cau1 = cauchy.rvs(size=n)
+        if(self.testMode):
+            uni1 = 0.2
+            uni2 = 0.3
+            cau1 = 0.2
+        
+        theta = math.pi * (uni1-1.0/2.0)
+        w = -1*np.log(uni2)
         
         if(alpha==1 and beta==0):
-            retVal = cauchy.rvs(size=n)
+            retVal = cau1
         else:
             b_tan_pa = self.beta * np.tan(math.pi/2.0 * self.alpha)
             theta0 = np.min(np.array([np.max(np.array([-math.pi/2.0, np.arctan(b_tan_pa)/self.alpha])), math.pi/2.0]))
             c = np.power((1 + b_tan_pa * b_tan_pa ), 1.0/(2.0*self.alpha))
             a_tht = self.alpha * (theta+theta0)
-            r = ( c*np.sin(a_tht)/np.power(np.cos(theta),(1/alpha)) ) * \
+            r = ( c*np.sin(a_tht)/np.power(np.cos(theta),(1.0/alpha)) ) * \
                 np.power( (np.cos(theta-a_tht)/w), ((1.0-self.alpha)/self.alpha) )
+            
             retVal = r - b_tan_pa
             
         retVal = retVal * self.gamma + self.delta
@@ -106,13 +120,29 @@ def _om(alpha, gamma):
         return 0
 
 if __name__=='__main__':
-    alpha = 0.4
-    beta = 0.8
-    gamma = 1
-    delta = 0
-    pm = 1
-    s = stable(alpha, beta, gamma, delta, pm)
-    print s.rvs()
-    
-    # TODO add test mode where we input the same uniform random variables and cauchy RV and see
-    # if we get the same value as matlab?
+    # TODO: we should automatically run the R script to generate the test values
+    # that way, when we add more tests, it just magically works :)
+
+    testFilename = 'R/stabledist/stabledist_test.txt'
+    testIdx = 1
+    with open(testFilename) as f:
+        for line in f:
+            vals = line.split(',')
+            alpha = float(vals[0].rstrip())
+            beta  = float(vals[1].rstrip())
+            n     = float(vals[2].rstrip())
+            gamma = float(vals[3].rstrip())
+            delta = float(vals[4].rstrip())
+            pm    = float(vals[5].rstrip())
+            R_output = float(vals[6].rstrip())
+            
+            s = stable(alpha, beta, gamma, delta, pm)
+            s.enableTestMode()
+            
+            pyOutput = s.rvs()
+            # compare against R calculations
+            if(np.isclose(R_output, pyOutput)):
+                print 'Test ' + str(testIdx) + ' Passed!'
+            else:
+                print 'Test ' + str(testIdx) + ' Failed!'
+            testIdx = testIdx + 1
