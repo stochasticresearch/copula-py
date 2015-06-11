@@ -61,9 +61,6 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
             argument is the degrees of freedom
     """
     
-    # generate u1v2
-    # generate u2v1
-    
     family_lc = family.lower()
     if(family_lc=='gaussian'):
         if(len(args)<2):
@@ -80,10 +77,13 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
             raise ValueError("T Family expects atleast 2 variable arguments, the dependency type and value")
         
         if(args[0]=='kendall' or args[0]=='spearman'):
-            # get the correlation parameter and degrees of freedom
-            (r, nu) = invcopulastat(family, args[0], args[1])
+            raise ValueError('T Family does not accept Kendalls Tau or Spearmans Rho, only native parameters')
+        else:
+            r = args[1]
+            nu = args[2]
             
-            cvol = _t(u1v1, u1v2, u2v1, u2v2, r, nu)
+            cvol = _gaussian(u1v1, u1v2, u2v1, u2v2, r, nu)
+            
     elif(family_lc=='clayton'):
         if(len(args)<2):
             raise ValueError("Clayton Family expects 2 variable arguments, the dependency type and value")
@@ -91,6 +91,8 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
         if(args[0]=='kendall' or args[0]=='spearman'):
             # get the correlation parameter and degrees of freedom
             alpha = invcopulastat(family, args[0], args[1])
+        else:
+            alpha = args[1]
         
         cvol = _clayton(u1v1, u1v2, u2v1, u2v2, alpha)
         
@@ -100,6 +102,8 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
         if(args[0]=='kendall' or args[0]=='spearman'):
             # get the correlation parameter and degrees of freedom
             alpha = invcopulastat(family, args[0], args[1])
+        else:
+            alpha = args[1]
         
         cvol = _frank(u1v1, u1v2, u2v1, u2v2, alpha)
 
@@ -109,6 +113,8 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
         if(args[0]=='kendall' or args[0]=='spearman'):
             # get the correlation parameter and degrees of freedom
             alpha = invcopulastat(family, args[0], args[1])
+        else:
+            alpha = args[1]
         
         cvol = _gumbel(u1v1, u1v2, u2v1, u2v2, alpha)
 

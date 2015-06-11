@@ -24,6 +24,8 @@ import numpy as np
 
 from scipy.stats import mvn                     # contains inverse CDF of Multivariate Gaussian
 from scipy.stats import norm                    # contains PDF of Gaussian
+from scipy.stats import t
+from statsmodels.sandbox.distributions import multivariate as mvt
 
 """
 copulacdf.py contains routines which provide Copula CDF values 
@@ -57,8 +59,14 @@ def copulacdf(family, u, *args):
         y = _gaussian(u, rho)
         
     elif(family_lc=='t'):
-        # TODO: fix!
-        return None
+        if(num_var_args!=2):
+            raise ValueError("T family requires two additional arguments -- rho (correlation matrix) [P x P] and nu [scalar]")
+        rho = args[0]
+        nu  = args[1]
+        rho_expected_shape = (p,p)
+        if(type(rho)!=np.ndarray or rho.shape!=rho_expected_shape):
+            raise ValueError("T family requires rho to be of type numpy.ndarray with shape=[P x P]")
+        y = _t(u, rho, nu)        
     elif(family_lc=='clayton'):
         if(num_var_args!=1):
             raise ValueError("Clayton family requires one additional argument -- alpha [scalar]")
@@ -90,9 +98,6 @@ def _gaussian(u, rho):
     Outputs:
     y -- the value of the Gaussian Copula
     """
-
-    # TODO: consider adding some error checking for input arguments
-    
     n  = u.shape[0]
     p  = u.shape[1]
     lo = np.full((1,p), -10)
@@ -113,9 +118,35 @@ def _gaussian(u, rho):
     
     return y
 
-def _t(u, rho, n):
-    return None
-
+def _t(u, rho, nu):
+    """ Generates values of the T copula
+    
+    Inputs:
+    u -- u is an N-by-P matrix of values in [0,1], representing N
+         points in the P-dimensional unit hypercube.  
+    rho -- a P-by-P correlation matrix.
+    nu  -- degrees of freedom for T Copula
+    
+    Outputs:
+    y -- the value of the T Copula
+    """
+    n  = u.shape[0]
+    p  = u.shape[1]
+    loIntegrationVal = -40
+    lo = np.full((1,p), loIntegrationVal)        # more accuracy, but slower :/
+    hi = t.ppf(u, nu)
+    
+    mu = np.zeros(p)
+    
+    y = np.zeros(n)
+    for ii in np.arange(n):
+        x = hi[ii,:]
+        x[x<-40] = -40
+        p = mvt.mvstdtprob(lo[0], x, rho, nu)
+        y[ii] = p
+    
+    return y
+    
 def _clayton(u, alpha):
     # C(u1,u2) = (u1^(-alpha) + u2^(-alpha) - 1)^(-1/alpha)
     if(alpha<0):
@@ -173,6 +204,7 @@ def test_python_vs_matlab(family):
     U = np.concatenate((U1,U2),axis=1)
         
     rho = 0.8
+    nu = 2
     Rho = np.array([[1,rho],[rho,1]])
     
     alpha = 0.3
@@ -199,7 +231,28 @@ def test_python_vs_matlab(family):
         Z = np.reshape(gaussian_copula_cdf_python,UU[0].shape)
         
         plot_utils.plot_3d(X,Y,Z, 'Gaussian Copula CDF')
+    
+    elif(family.lower()=='t'):
+        t_copula_cdf_python = copulacdf(family,U,Rho,nu)
+        t_copula_cdf_matlab = matlab_data['t_copula_cdf']
+        t_copula_cdf_matlab = t_copula_cdf_matlab[:,0]
         
+        # compare the two
+        t_copula_test_result = np.allclose(t_copula_cdf_python,t_copula_cdf_matlab,atol=0.01)   # a high tolerance required
+                                                                                                # b/c of way that mvt
+                                                                                                # is implemented in python
+        if(t_copula_test_result):
+            print 'T Copula Python calculation matches Matlab!'
+        else:
+            print 'T Copula Python calculation does NOT match Matlab!'
+            
+        # plot the Guassian Copula for fun
+        X = UU[0]
+        Y = UU[1]
+        Z = np.reshape(t_copula_cdf_python,UU[0].shape)
+        
+        plot_utils.plot_3d(X,Y,Z, 'T Copula CDF')
+    
     elif(family.lower()=='clayton'):
         clayton_copula_cdf_python = copulacdf(family,U,alpha)
         clayton_copula_cdf_matlab = matlab_data['clayton_copula_cdf']
@@ -262,8 +315,9 @@ if __name__=='__main__':
     import scipy.io
     import plot_utils
     
-    test_python_vs_matlab('Gaussian')
-    test_python_vs_matlab('Clayton')
-    test_python_vs_matlab('Frank')
-    test_python_vs_matlab('Gumbel')
+    #test_python_vs_matlab('Gaussian')
+    test_python_vs_matlab('T')
+    #test_python_vs_matlab('Clayton')
+    #test_python_vs_matlab('Frank')
+    #test_python_vs_matlab('Gumbel')
     

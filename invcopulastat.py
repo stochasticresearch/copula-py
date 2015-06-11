@@ -69,7 +69,7 @@ def _clayton(dependency, val):
     if(dependency=='kendall'):
         d = 2.0*val/(1.0-val)
     elif(dependency=='spearman'):
-        raise ValueError('Spearmans Rho currently unsupported for Clayton Copula family!')
+        raise NotImplementedError('Spearmans Rho currently unsupported for Clayton Copula family!')
     
     return d
 
@@ -77,7 +77,7 @@ def _gumbel(dependency, val):
     if(dependency=='kendall'):
         d = 1.0/(1.0-val)
     elif(dependency=='spearman'):
-        raise ValueError('Spearmans Rho currently unsupported for Gumbel Copula family!')
+        raise NotImplementedError('Spearmans Rho currently unsupported for Gumbel Copula family!')
     
     return d
 
@@ -89,7 +89,7 @@ def _frank(dependency, val):
         return fsolve(_frank_kendall_fopt, 1, args=(val))
     elif(dependency=='spearman'):
         # TODO --  use function solvers in scipy to invert debye function for the closed form solution
-        raise ValueError('Spearmans Rho currently unsupported for Frank Copula family!')
+        raise NotImplementedError('Spearmans Rho currently unsupported for Frank Copula family!')
     
     return r
 

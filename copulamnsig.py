@@ -71,13 +71,7 @@ def copulamnsig(family, tau, K):
         u2v1 = coord[2]
         u2v2 = coord[3]
         val = cvolume(family, u1v1, u1v2, u2v1, u2v2, 'kendall', tau)
-        #tmp = {}
-        #tmp['u1v1'] = u1v1
-        #tmp['u1v2'] = u1v2
-        #tmp['u2v1'] = u2v1
-        #tmp['u2v2'] = u2v2
-        #tmp['val']  = val
-        #mnsig.append(tmp)
+
         mnsig.append(val[0])
     
     return mnsig
@@ -201,7 +195,6 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
       family_search - a list of all the copula families to search.  Currently, what is supported is
           Gaussian, Clayton, Gumbel, and Frank.  As more copula's are added, the default list will
           be expanded.
-    
     """
     # compute the empirical Kendall's Tau
     tau = multivariate_stats.kendalls_tau(X)

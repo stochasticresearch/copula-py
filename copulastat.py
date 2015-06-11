@@ -40,7 +40,8 @@ def copulastat(family, dependency, *args):
     if(family.lower()=='gaussian'):
         r = _gaussian(dependency_lc, dep_param)
     elif(family.lower()=='t'):
-        r = _t(dependency_lc, dep_param)
+        nu = args[1]
+        r = _t(dependency_lc, dep_param, nu)
     elif(family.lower()=='clayton'):
         if(dep_param<0):
             raise ValueError('Invalid alpha value for Clayton Copula!')
@@ -61,12 +62,12 @@ def _gaussian(dependency, rho):
         r = 6*np.arcsin(rho/2)/math.pi
     return r
 
-# TODO: all of the Student T related copula stuff
-def _t(dependency, rho, nu=1):
+def _t(dependency, rho, nu):
     if(dependency=='kendall'):
-        pass
+        r = 2*np.arcsin(rho)/math.pi
     elif(dependency=='spearman'):
-        pass
+        # we use nu in spearman's rho
+        raise NotImplementedError('Spearmans Rho currently unsupported for T Copula')
 
 def _clayton(dependency, alpha):
     if(dependency=='kendall'):
