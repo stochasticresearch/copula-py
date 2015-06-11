@@ -31,7 +31,7 @@ from scipy.stats import gamma
 from scipy.stats import logser
 from scipy.stats import t
 from stable import stable
-from mvtrnd import mvtrnd     # custom function to generate multivariate T RV's
+from statsmodels.sandbox.distributions import multivariate as mvt
 
 """
 copularnd.py contains routines which provide samples of a copula density
@@ -113,7 +113,7 @@ def _gaussian(M, Rho):
 def _t(M, Rho, nu):
     N = Rho.shape[0]
     mu = np.zeros(N)        # zero mean
-    x = mvtrnd(mu,Rho,nu,M) # generate T RV's
+    x = mvt.multivariate_t_rvs(mu,Rho,nu,M) # generate T RV's
     U = t.cdf(x, nu)
     
     return U
