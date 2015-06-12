@@ -231,15 +231,8 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     # and the computed, and store that info
     distances = {}
     for family in family_search:
-        if(family!='T'):
-            mnsig = copulamnsig(family,K,'kendall',tau_hat)
-        else:
-            # calculate the degrees of freedom for each marginal, combine them
-            # in some way to come up with an estimate for the overall degrees
-            # of freedom for the multivariate distribution, and then compute
-            # the estimated rho matrix from the tau estimate and then from those
-            # two variables, we can derive the empirical multinomial signature
-            pass
+        mnsig = copulamnsig(family,K,'kendall',tau_hat)
+            
         # compute KL divergence, see
         # http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.stats.entropy.html
         distances[family] = entropy(mnsig, empirical_mnsig)
@@ -278,7 +271,7 @@ if __name__=='__main__':
     
     M = 1000
     N = 2
-    """
+    
     ###################### GAUSSIAN COPULA EXPERIMENT #######################
     # generate samples of the Gaussian copula with tau same as the
     # empirical signature we calculated above
@@ -295,26 +288,7 @@ if __name__=='__main__':
         
     ret = optimalCopulaFamily(X)
     print 'Input: Gaussian Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
-    """
-    ###################### T COPULA EXPERIMENT #######################
-    # generate samples of the T copula with tau same as the
-    # empirical signature we calculated above
-    r = invcopulastat('T', 'kendall', tau)
-    Rho = np.array([[1.0,r],[r,1.0]])
-    nu = 3
-    U = copularnd('T', M, Rho, nu)
-    
-    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-    
-    # combine X and Y into the joint distribution w/ the copula
-    X = np.vstack((X1,X2))
-    X = X.T
-        
-    ret = optimalCopulaFamily(X)
-    print 'Input: T Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
-    
-    """
+
     ###################### GUMBEL COPULA EXPERIMENT #######################
     # generate samples of the gumbel copula with tau same as the
     # empirical signature we calculated above
@@ -358,6 +332,5 @@ if __name__=='__main__':
         
     ret = optimalCopulaFamily(X)
     print 'Input: Clayton Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
-    """
     
     # TODO: test for multivariate dataset, where # vars > 2
