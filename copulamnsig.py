@@ -28,7 +28,7 @@ import multivariate_stats
 from ecdf import probability_integral_transform
 from scipy.stats import entropy
 
-def copulamnsig(family, tau, K):
+def copulamnsig(family, K, *args):
     """
     Computes the copula multinomial signature as described in the paper
     "Highly Efficient Learning of Mixed Copula Networks" for a specified 
@@ -53,6 +53,29 @@ def copulamnsig(family, tau, K):
     Currently, this computes the multinomial signature for a specified copula
     family of 2 dimensions.  It would be nice to expand this to multiple
     dimensions, and we can use the general formula for C-volume
+    
+      family - the copula type, must be:
+        'Gaussian'
+        'T'
+        'Clayton'
+        'Frank'
+        'Gumbel'
+      args - must be atleast of length 2, for which the first element in args
+             is expected to be a string which describes the dependency value
+             being provided, must be one of the following:
+        'kendall' - means kendall's Tau is being provided
+        'spearman' - means spearman's rho is being provided
+        'native' - means that the dependency parameter of the copula family
+                   itself is being provided directly
+            the second argmuent  must be the value of the dependency type 
+            provided. For kendall and spearman, a scalar value is expected.  
+            For native, if the family type is Frank, Gumbel, or Clayton, then 
+            a scalar value is expected, which represents the dependency
+            parameter.  If the family type is Gaussian, then a 2 x 2 numpy array
+            is expected, which represents the correlation matrix defining the
+            Gaussian copula.  If the family is T, then the 2nd argument is the
+            2x2 numpy array representing the correlation matrix, and the 3rd
+            argument is the degrees of freedom
     """
     coords_list = _makeCoordsList(K)
             
@@ -70,7 +93,7 @@ def copulamnsig(family, tau, K):
         u1v2 = coord[1]
         u2v1 = coord[2]
         u2v2 = coord[3]
-        val = cvolume(family, u1v1, u1v2, u2v1, u2v2, 'kendall', tau)
+        val = cvolume(family, u1v1, u1v2, u2v1, u2v2, *args)
 
         mnsig.append(val[0])
     
@@ -208,7 +231,7 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     # and the computed, and store that info
     distances = {}
     for family in family_search:
-        mnsig = copulamnsig(family,tau,K)
+        mnsig = copulamnsig(family,K,'kendall',tau)
         # compute KL divergence, see
         # http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.stats.entropy.html
         distances[family] = entropy(mnsig, empirical_mnsig)
@@ -234,7 +257,7 @@ if __name__=='__main__':
     # some tests on the copula multinomial signature
     tau = 0.4
     K = 4
-    mnsig = copulamnsig('Gumbel',tau,K)
+    mnsig = copulamnsig('Gumbel',K,'kendall',tau)
     # iterate through mnsig to make sure we add upto 1 as a simple sanity check
     val_total = 0
     for ii in range(0,len(mnsig)):
@@ -246,12 +269,49 @@ if __name__=='__main__':
         print 'CopulaMNSig total probability check failed!'
     
     M = 1000
+    N = 2
+    """
+    ###################### GAUSSIAN COPULA EXPERIMENT #######################
+    # generate samples of the Gaussian copula with tau same as the
+    # empirical signature we calculated above
+    r = invcopulastat('Gaussian', 'kendall', tau)
+    Rho = np.array([[1.0,r],[r,1.0]])
+    U = copularnd('Gaussian', M, Rho)
     
+    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+    
+    # combine X and Y into the joint distribution w/ the copula
+    X = np.vstack((X1,X2))
+    X = X.T
+        
+    ret = optimalCopulaFamily(X)
+    print 'Input: Gaussian Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+    """
+    ###################### T COPULA EXPERIMENT #######################
+    # generate samples of the T copula with tau same as the
+    # empirical signature we calculated above
+    r = invcopulastat('T', 'kendall', tau)
+    Rho = np.array([[1.0,r],[r,1.0]])
+    nu = 2
+    U = copularnd('T', M, Rho, nu)
+    
+    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+    
+    # combine X and Y into the joint distribution w/ the copula
+    X = np.vstack((X1,X2))
+    X = X.T
+        
+    ret = optimalCopulaFamily(X)
+    print 'Input: T Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+    
+    """
     ###################### GUMBEL COPULA EXPERIMENT #######################
     # generate samples of the gumbel copula with tau same as the
     # empirical signature we calculated above
     alpha = invcopulastat('Gumbel', 'kendall', tau)
-    U = copularnd('Gumbel', M, alpha)
+    U = copularnd('Gumbel', M, N, alpha)
     
     X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
     X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
@@ -265,7 +325,7 @@ if __name__=='__main__':
     
     ###################### FRANK COPULA EXPERIMENT #######################
     alpha = invcopulastat('Frank', 'kendall', tau)
-    U = copularnd('Frank', M, alpha)
+    U = copularnd('Frank', M, N, alpha)
     
     X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
     X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
@@ -279,7 +339,7 @@ if __name__=='__main__':
     
     ###################### CLAYTON COPULA EXPERIMENT #######################
     alpha = invcopulastat('Clayton', 'kendall', tau)
-    U = copularnd('Clayton', M, alpha)
+    U = copularnd('Clayton', M, N, alpha)
     
     X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
     X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
@@ -290,6 +350,6 @@ if __name__=='__main__':
         
     ret = optimalCopulaFamily(X)
     print 'Input: Clayton Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
-    
+    """
     
     # TODO: test for multivariate dataset, where # vars > 2

@@ -42,7 +42,7 @@ def invcopulastat(family, dependency, val):
     if(family.lower()=='gaussian'):
         r = _gaussian(dependency_lc, val)
     elif(family.lower()=='t'):
-        r = None
+        r = _t(dependency_lc, val)
     elif(family.lower()=='clayton'):
         r = _clayton(dependency_lc, val)
     elif(family.lower()=='gumbel'):
@@ -61,9 +61,12 @@ def _gaussian(dependency, val):
         r = 2*np.sin(math.pi/6.0*val)
     return r
 
-# TODO: all studnet-t related stuff
 def _t(dependency, val):
-    return None
+    if(dependency=='kendall'):
+        r = np.sin(math.pi/2.0*val)
+    elif(dependency=='spearman'):
+        r = 2*np.sin(math.pi/6.0*val)
+    return r
 
 def _clayton(dependency, val):
     if(dependency=='kendall'):

@@ -59,8 +59,7 @@ def cvolume(family, u1v1, u1v2, u2v1, u2v2, *args):
             Gaussian copula.  If the family is T, then the 2nd argument is the
             2x2 numpy array representing the correlation matrix, and the 3rd
             argument is the degrees of freedom
-    """
-    
+    """    
     family_lc = family.lower()
     if(family_lc=='gaussian'):
         if(len(args)<2):
@@ -141,7 +140,13 @@ def _t(u1v1, u1v2, u2v1, u2v2, r, nu):
     Rho[0][1] = r
     Rho[1][0] = r
     
-    # TODO:
+    # this is the equation for C Volume as defined by Nelsen
+    cvol = copulacdf('T', u2v2, Rho, nu) - \
+           copulacdf('T', u2v1, Rho, nu) - \
+           copulacdf('T', u1v2, Rho, nu) + \
+           copulacdf('T', u1v1, Rho, nu) 
+    
+    return cvol
     
     return None
 
