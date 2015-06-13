@@ -221,7 +221,6 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     """
     # compute the empirical Kendall's Tau
     tau_hat = multivariate_stats.kendalls_tau(X)
-    print tau_hat
     
     # compute empirical multinomial signature
     empirical_mnsig = empirical_copulamnsig(X, K)
@@ -255,6 +254,8 @@ if __name__=='__main__':
     from invcopulastat import invcopulastat
     from scipy.stats import norm
     from scipy.stats import expon
+    import sys
+    import matplotlib.pyplot as plt
 
     # some tests on the copula multinomial signature
     tau = 0.4
@@ -275,9 +276,14 @@ if __name__=='__main__':
     
     # Monte-Carlo style simulations to test each copula generation
     numMCSims = 100
-    """
+    # the families to test against and pick optimal copula
+    families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']      # for the pie chart
+
     ###################### GAUSSIAN COPULA EXPERIMENT #######################
-    bivariateGuassCopulaPassPercentage = 0
+    bivariateGaussResults = {}
+    for family in families:
+        bivariateGaussResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         # generate samples of the Gaussian copula with tau same as the
         # empirical signature we calculated above
@@ -292,14 +298,29 @@ if __name__=='__main__':
         X = np.vstack((X1,X2))
         X = X.T
             
-        ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='gaussian'):
-            bivariateGuassCopulaPassPercentage = bivariateGuassCopulaPassPercentage + 1.0
-    bivariateGuassCopulaPassPercentage = bivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
-    print 'Bivariate Gaussian Copula - Correct Identification Percentage = ' + str(bivariateGuassCopulaPassPercentage) + '%'
+        ret = optimalCopulaFamily(X, family_search=families)
+        ret_family = ret[0].lower()
+        # aggregate results
+        bivariateGaussResults[ret_family] = bivariateGaussResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Bivariate Gaussian Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+        
+    # explode the Gaussian portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[bivariateGaussResults.keys().index('gaussian')] = 0.1
+    plt.pie(bivariateGaussResults.values(), explode=expTup, labels=bivariateGaussResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Bivariate Gaussian Copula - HELM Identification Breakdown')
+    plt.show()
+    sys.stdout.write("\r")
+    
 
     ###################### GUMBEL COPULA EXPERIMENT #######################
-    bivariateGumbelCopulaPassPercentage = 0
+    bivariateGumbelResults = {}
+    for family in families:
+        bivariateGumbelResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         # generate samples of the gumbel copula with tau same as the
         # empirical signature we calculated above
@@ -314,13 +335,27 @@ if __name__=='__main__':
         X = X.T
             
         ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='gumbel'):
-            bivariateGumbelCopulaPassPercentage = bivariateGumbelCopulaPassPercentage + 1.0
-    bivariateGumbelCopulaPassPercentage = bivariateGumbelCopulaPassPercentage/float(numMCSims)*100.0
-    print 'Bivariate Gumbel Copula - Correct Identification Percentage = ' + str(bivariateGumbelCopulaPassPercentage) + '%'
+        ret_family = ret[0].lower()
+        # aggregate results
+        bivariateGumbelResults[ret_family] = bivariateGumbelResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Bivariate Gumbel Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+        
+    # explode the Gumbel portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[bivariateGumbelResults.keys().index('gumbel')] = 0.1
+    plt.pie(bivariateGumbelResults.values(), explode=expTup, labels=bivariateGumbelResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Bivariate Gumbel Copula - HELM Identification Breakdown')
+    plt.show()
+    sys.stdout.write("\r")
     
     ###################### FRANK COPULA EXPERIMENT #######################
-    bivariateFrankCopulaPassPercentage = 0
+    bivariateFrankResults = {}
+    for family in families:
+        bivariateFrankResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         alpha = invcopulastat('Frank', 'kendall', tau)
         U = copularnd('Frank', M, N, alpha)
@@ -333,13 +368,27 @@ if __name__=='__main__':
         X = X.T
             
         ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='frank'):
-            bivariateFrankCopulaPassPercentage = bivariateFrankCopulaPassPercentage + 1
-    bivariateFrankCopulaPassPercentage = bivariateFrankCopulaPassPercentage/float(numMCSims)*100.0
-    print 'Bivariate Frank Copula - Correct Identification Percentage = ' + str(bivariateFrankCopulaPassPercentage) + '%'
+        ret_family = ret[0].lower()
+        # aggregate results
+        bivariateFrankResults[ret_family] = bivariateFrankResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Bivariate Frank Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+    
+    # explode the Frank portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[bivariateFrankResults.keys().index('frank')] = 0.1
+    plt.pie(bivariateFrankResults.values(), explode=expTup, labels=bivariateFrankResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Bivariate Frank Copula - HELM Identification Breakdown')
+    plt.show()    
+    sys.stdout.write("\r")
     
     ###################### CLAYTON COPULA EXPERIMENT #######################
-    bivariateClaytonCopulaPercentage = 0
+    bivariateClaytonResults = {}
+    for family in families:
+        bivariateClaytonResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         alpha = invcopulastat('Clayton', 'kendall', tau)
         U = copularnd('Clayton', M, N, alpha)
@@ -352,17 +401,30 @@ if __name__=='__main__':
         X = X.T
             
         ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='clayton'):
-            bivariateClaytonCopulaPercentage = bivariateClaytonCopulaPercentage + 1
-    bivariateClaytonCopulaPercentage = bivariateClaytonCopulaPercentage/float(numMCSims)*100.0
-    print 'Bivariate Clayton Copula - Correct Identification Percentage = ' + str(bivariateClaytonCopulaPercentage) + '%'
-    """
+        ret_family = ret[0].lower()
+        # aggregate results
+        bivariateClaytonResults[ret_family] = bivariateClaytonResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Bivariate Clayton Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+
+    # explode the Clayton portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[bivariateClaytonResults.keys().index('clayton')] = 0.1
+    plt.pie(bivariateClaytonResults.values(), explode=expTup, labels=bivariateClaytonResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Bivariate Clayton Copula - HELM Identification Breakdown')
+    plt.show()            
+    sys.stdout.write("\r")
+
     ###################### MULTIVARIATE (N > 2) TESTS #######################
     N = 3
     
-    """
     ###################### GAUSSIAN COPULA EXPERIMENT #######################
-    multivariateGuassCopulaPassPercentage = 0
+    multivariateGaussResults = {}
+    for family in families:
+        multivariateGaussResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         # generate samples of the Gaussian copula with tau same as the
         # empirical signature we calculated above
@@ -379,21 +441,32 @@ if __name__=='__main__':
         X = X.T
             
         ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='gaussian'):
-            multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage + 1.0
-    multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
-    print 'Multivariate Gaussian Copula - Correct Identification Percentage = ' + str(multivariateGuassCopulaPassPercentage) + '%'
-    """
+        ret_family = ret[0].lower()
+        # aggregate results
+        multivariateGaussResults[ret_family] = multivariateGaussResults[ret_family] + 1.0
+            
+        # display some progress
+        sys.stdout.write("\rComputing Multivariate Gaussian Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+    
+    # explode the Gaussian portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[multivariateGaussResults.keys().index('gaussian')] = 0.1
+    plt.pie(multivariateGaussResults.values(), explode=expTup, labels=multivariateGaussResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Multivariate Gaussian Copula - HELM Identification Breakdown')
+    plt.show()            
+    sys.stdout.write("\r")
     
     ###################### GUMBEL COPULA EXPERIMENT #######################
-    multivariateGuassCopulaPassPercentage = 0
+    multivariateGumbelResults = {}
+    for family in families:
+        multivariateGumbelResults[family.lower()] = 0
     for ii in range(0,numMCSims):
         # generate samples of the gumbel copula with tau same as the
         # empirical signature we calculated above
         alpha = invcopulastat('Gumbel', 'kendall', tau)
         U = copularnd('Gumbel', M, N, alpha)
-        
-        
         
         X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
         X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
@@ -404,7 +477,92 @@ if __name__=='__main__':
         X = X.T
             
         ret = optimalCopulaFamily(X)
-        if(ret[0].lower()=='gumbel'):
-            multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage + 1.0
-    multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
-    print 'Multivariate Gumbel Copula - Correct Identification Percentage = ' + str(multivariateGuassCopulaPassPercentage)
+        ret_family = ret[0].lower()
+        # aggregate results
+        multivariateGumbelResults[ret_family] = multivariateGumbelResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Multivariate Gumbel Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+            
+    # explode the Gumbel portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[multivariateGumbelResults.keys().index('gumbel')] = 0.1
+    plt.pie(multivariateGumbelResults.values(), explode=expTup, labels=multivariateGumbelResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Multivariate Gumbel Copula - HELM Identification Breakdown')
+    plt.show()            
+    sys.stdout.write("\r")
+    
+    ###################### FRANK COPULA EXPERIMENT #######################
+    multivariateFrankResults = {}
+    for family in families:
+        multivariateFrankResults[family.lower()] = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the gumbel copula with tau same as the
+        # empirical signature we calculated above
+        alpha = invcopulastat('Frank', 'kendall', tau)
+        U = copularnd('Frank', M, N, alpha)
+        
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2,X3))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        ret_family = ret[0].lower()
+        # aggregate results
+        multivariateFrankResults[ret_family] = multivariateFrankResults[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing Multivariate Frank Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+            
+    # explode the Gumbel portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[multivariateFrankResults.keys().index('frank')] = 0.1
+    plt.pie(multivariateFrankResults.values(), explode=expTup, labels=multivariateFrankResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Multivariate Frank Copula - HELM Identification Breakdown')
+    plt.show()            
+    sys.stdout.write("\r")
+    
+    ###################### CLAYTON COPULA EXPERIMENT #######################
+    multivariateClaytonResults = {}
+    for family in families:
+        multivariateClaytonResults[family.lower()] = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the gumbel copula with tau same as the
+        # empirical signature we calculated above
+        alpha = invcopulastat('Clayton', 'kendall', tau)
+        U = copularnd('Clayton', M, N, alpha)
+        
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2,X3))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        ret_family = ret[0].lower()
+        # aggregate results
+        multivariateClaytonResults[ret_family] = multivariateClaytonResults[ret_family] + 1.0
+            
+        # display some progress
+        sys.stdout.write("\rComputing Multivariate Clayton Copula -- %d%%" % (ii+1))
+        sys.stdout.flush()
+        
+    # explode the Gumbel portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[multivariateClaytonResults.keys().index('clayton')] = 0.1
+    plt.pie(multivariateClaytonResults.values(), explode=expTup, labels=multivariateClaytonResults.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title('Reference Multivariate Clayton Copula - HELM Identification Breakdown')
+    plt.show()            
+    sys.stdout.write("\r")
+    

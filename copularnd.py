@@ -36,7 +36,6 @@ from statsmodels.sandbox.distributions import multivariate as mvt
 """
 copularnd.py contains routines which provide samples of a copula density
 """
-
 def copularnd(family, M, *args):
     """ Generates values of the Gaussian copula
     
@@ -258,40 +257,16 @@ if __name__=='__main__':
     Uf3d = copularnd('frank',M,N,alpha)
     Uc3d = copularnd('clayton',M,N,alpha)
     
-    # 2-D plots
-    plt.scatter(Ug2d[:,0],Ug2d[:,1])
-    plt.title('Gaussian Copula Samples (2-D)')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Ut2d[:,0],Ut2d[:,1])
-    plt.title('T Copula Samples (2-D)')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Uc2d[:,0],Uc2d[:,1])
-    plt.title('Clayton Copula Samples (2-D)')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Uf2d[:,0],Uf2d[:,1])
-    plt.title('Frank Copula Samples (2-D)')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Ugu2d[:,0],Ugu2d[:,1])
-    plt.title('Gumbel Copula Samples (2-D)')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
+    # plots
+    pairs(Ug2d, 'Gaussian')
+    pairs(Ut2d, 'T')
+    pairs(Uc2d, 'Clayton')
+    pairs(Uf2d, 'Frank')
+    pairs(Ugu2d, 'Gumbel')
         
     pairs(Ug3d, 'Gaussian')
     pairs(Ut3d, 'T')
-    pairs(Ugu3d, 'Gumbel')
-    pairs(Uf3d, 'Frank')
     pairs(Uc3d, 'Clayton')
+    pairs(Uf3d, 'Frank')
+    pairs(Ugu3d, 'Gumbel')
     
