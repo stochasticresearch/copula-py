@@ -137,27 +137,27 @@ def _clayton(M, N, alpha):
             u2 = u1*np.power((np.power(p,(-alpha/(1.0+alpha))) - 1 + np.power(u1,alpha)),(-1.0/alpha))
         
         U = np.column_stack((u1,u2))
-        
-        return U
     else:
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
-        U = np.empty(M,N)
+        U = np.empty((M,N))
         for ii in range(0,M):
             shape = 1.0/alpha
             loc = 0
             scale = 1
-            v = gamma(shape, loc, scale)
+            v = gamma.rvs(shape)
             
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
-
-            # TODO: we can probably vectorize this operation
-            for jj in range(0,N):
-                t = -1*np.log(x_ii[jj]/v)
-                U[ii][jj] = np.power((1+t), -1.0/alpha)
+            t = -1*np.log(x_i)/v
+            if(alpha<0):
+                tmp = np.maximum(0, 1.0-t)
+            else:
+                tmp = 1.0 + t
             
-        return U
+            U[ii,:] = np.power(tmp, -1.0/alpha)
+
+    return U
 
 def _frank(M, N, alpha):
     if(N<2):
@@ -173,25 +173,20 @@ def _frank(M, N, alpha):
             u2 = p
         
         U = np.column_stack((u1,u2))
-        return U
     else:
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
-        U = np.empty(M,N)
+        U = np.empty((M,N))
         for ii in range(0,M):
-            p = 1 - np.exp(-1*alpha)
+            p = -1.0*np.expm1(-1*alpha)
             v = logser.rvs(p, size=1)
             
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
-
-            # TODO: we can probably vectorize this operation
-            for jj in range(0,N):
-                t = -1*np.log(x_ii[jj]/v)
-                U[ii][jj] = -1*np.log( 1-np.exp(t)*(1-np.exp(-1*alpha)) )/alpha
+            t = -1*np.log(x_i)/v
+            U[ii,:] = -1.0*np.log1p( np.exp(-t)*np.expm1(-1.0*alpha))/alpha
             
-        return U
-    
+    return U
 
 def _gumbel(M, N, alpha):
     if alpha < 1:
@@ -216,15 +211,16 @@ def _gumbel(M, N, alpha):
             u2 = np.exp(-1* (np.power(-1*np.log(uniform.rvs(size=M)), 1.0/alpha) / gamma) )
             
         U = np.column_stack((u1,u2))
-        return U
     else:
+        # TODO: I THINK GUMBEL MULTIVARIATE IS NTO QUITE RIGHT, THE STABLE is probably the problem
+        
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
-        U = np.empty(M,N)
+        U = np.empty((M,N))
         for ii in range(0,M):
             a  = 1.0/alpha
             b  = 1
-            g  = np.pow(np.cos(math.pi/(2.0*alpha)), alpha)
+            g  = np.power(np.cos(math.pi/(2.0*alpha)), alpha)
             d  = 0
             pm = 1
             s = stable(a, b, g, d, pm)
@@ -232,17 +228,16 @@ def _gumbel(M, N, alpha):
             
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
-
-            # TODO: we can probably vectorize this operation
-            for jj in range(0,N):
-                t = -1*np.log(x_ii[jj]/v)
-                U[ii][jj] = np.exp(np.power(-1*t, 1.0/alpha))
+            t = -1*np.log(x_i)/v
             
-        return U
+            U[ii,:] = np.exp(-1*np.power(t, 1.0/alpha))
+            
+    return U
 
 
 if __name__=='__main__':
     import matplotlib.pyplot as plt
+    from plot_utils import pairs
     M = 1000
     rh = 0.6
     Rho = np.array([[1,rh],[rh,1]])
@@ -250,40 +245,37 @@ if __name__=='__main__':
     N = 2
     alpha = 5
     
-    Ug = copularnd('gaussian', M, Rho)
-    Ut = copularnd('t', M, Rho, nu)
-    Uc  = copularnd('clayton', M, N, alpha)
-    Uf  = copularnd('frank', M, N, alpha)
-    Ugu = copularnd('gumbel', M, N, alpha)
     
-    plt.scatter(Ug[:,0],Ug[:,1])
-    plt.title('Gaussian Copula Samples')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Ut[:,0],Ut[:,1])
+    Ug2d = copularnd('gaussian', M, Rho)
+    Ut2d = copularnd('t', M, Rho, nu)
+    Uc2d  = copularnd('clayton', M, N, alpha)
+    Uf2d  = copularnd('frank', M, N, alpha)
+    Ugu2d = copularnd('gumbel', M, N, alpha)
+
+    plt.scatter(Ut2d[:,0],Ut2d[:,1])
     plt.title('T Copula Samples')
     plt.grid()
     plt.axis((0,1,0,1))
     plt.show()
+        
+    # generate 3-D gaussian copula, and plot 2x2's
+    Rho = np.array([[1,rh,rh],[rh,1,rh],[rh,rh,1]])
+    Ug3d = copularnd('gaussian', M, Rho)
+    pairs(Ug3d, 'Gaussian')
+
+    # generate 3-D gumbel copula, and plot 2x2's
+    N = 3
+    Ugu3d = copularnd('gumbel',M,N,alpha)
+    pairs(Ugu3d, 'Gumbel')
     
-    plt.scatter(Uc[:,0],Uc[:,1])
-    plt.title('Clayton Copula Samples')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
+    # generate 3-D Frank copula, and plot 2x2's
+    N = 3
+    Uf3d = copularnd('frank',M,N,alpha)
+    pairs(Uf3d, 'Frank')
     
-    plt.scatter(Uf[:,0],Uf[:,1])
-    plt.title('Frank Copula Samples')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
-    
-    plt.scatter(Ugu[:,0],Ugu[:,1])
-    plt.title('Gumbel Copula Samples')
-    plt.grid()
-    plt.axis((0,1,0,1))
-    plt.show()
+    # generate 3-D Clayton copula, and plot 2x2's
+    N = 3
+    Uc3d = copularnd('clayton',M,N,alpha)
+    pairs(Uc3d, 'Clayton')
     
     

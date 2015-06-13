@@ -33,3 +33,32 @@ def plot_3d(X,Y,Z, titleStr):
     plt.ylabel('U2')
     plt.title(titleStr)
     plt.show()
+    
+def pairs(X, titleStr):
+    # TODO: make this generic, rightnow specific to 3 variate data
+    f, ((ax1, ax2, ax3), (ax4, ax5, ax6), (ax7, ax8, ax9)) = plt.subplots(3, 3)    
+    ax2.scatter(X[:,0],X[:,1])
+    ax2.set_title(titleStr + ' 1 : 2')
+    ax2.grid()
+    
+    ax3.scatter(X[:,0],X[:,2])
+    ax3.set_title(titleStr + ' 1 : 3')
+    ax3.grid()
+    
+    ax4.scatter(X[:,1],X[:,0])
+    ax4.set_title(titleStr + ' 2 : 1')
+    ax4.grid()
+    
+    ax6.scatter(X[:,1],X[:,2])
+    ax6.set_title(titleStr + ' 2 : 3')
+    ax6.grid()
+    
+    ax7.scatter(X[:,2],X[:,0])
+    ax7.set_title(titleStr + ' 3 : 1')
+    ax7.grid()
+    
+    ax8.scatter(X[:,2],X[:,1])
+    ax8.set_title(titleStr + ' 3 : 2')
+    ax8.grid()
+    
+    plt.show()

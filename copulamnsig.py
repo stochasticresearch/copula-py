@@ -221,6 +221,7 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     """
     # compute the empirical Kendall's Tau
     tau_hat = multivariate_stats.kendalls_tau(X)
+    print tau_hat
     
     # compute empirical multinomial signature
     empirical_mnsig = empirical_copulamnsig(X, K)
@@ -272,65 +273,138 @@ if __name__=='__main__':
     M = 1000
     N = 2
     
+    # Monte-Carlo style simulations to test each copula generation
+    numMCSims = 100
+    """
     ###################### GAUSSIAN COPULA EXPERIMENT #######################
-    # generate samples of the Gaussian copula with tau same as the
-    # empirical signature we calculated above
-    r = invcopulastat('Gaussian', 'kendall', tau)
-    Rho = np.array([[1.0,r],[r,1.0]])
-    U = copularnd('Gaussian', M, Rho)
-    
-    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-    
-    # combine X and Y into the joint distribution w/ the copula
-    X = np.vstack((X1,X2))
-    X = X.T
+    bivariateGuassCopulaPassPercentage = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the Gaussian copula with tau same as the
+        # empirical signature we calculated above
+        r = invcopulastat('Gaussian', 'kendall', tau)
+        Rho = np.array([[1.0,r],[r,1.0]])
+        U = copularnd('Gaussian', M, Rho)
         
-    ret = optimalCopulaFamily(X)
-    print 'Input: Gaussian Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='gaussian'):
+            bivariateGuassCopulaPassPercentage = bivariateGuassCopulaPassPercentage + 1.0
+    bivariateGuassCopulaPassPercentage = bivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
+    print 'Bivariate Gaussian Copula - Correct Identification Percentage = ' + str(bivariateGuassCopulaPassPercentage) + '%'
 
     ###################### GUMBEL COPULA EXPERIMENT #######################
-    # generate samples of the gumbel copula with tau same as the
-    # empirical signature we calculated above
-    alpha = invcopulastat('Gumbel', 'kendall', tau)
-    U = copularnd('Gumbel', M, N, alpha)
-    
-    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-    
-    # combine X and Y into the joint distribution w/ the copula
-    X = np.vstack((X1,X2))
-    X = X.T
+    bivariateGumbelCopulaPassPercentage = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the gumbel copula with tau same as the
+        # empirical signature we calculated above
+        alpha = invcopulastat('Gumbel', 'kendall', tau)
+        U = copularnd('Gumbel', M, N, alpha)
         
-    ret = optimalCopulaFamily(X)
-    print 'Input: Gumbel Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='gumbel'):
+            bivariateGumbelCopulaPassPercentage = bivariateGumbelCopulaPassPercentage + 1.0
+    bivariateGumbelCopulaPassPercentage = bivariateGumbelCopulaPassPercentage/float(numMCSims)*100.0
+    print 'Bivariate Gumbel Copula - Correct Identification Percentage = ' + str(bivariateGumbelCopulaPassPercentage) + '%'
     
     ###################### FRANK COPULA EXPERIMENT #######################
-    alpha = invcopulastat('Frank', 'kendall', tau)
-    U = copularnd('Frank', M, N, alpha)
-    
-    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-    
-    # combine X and Y into the joint distribution w/ the copula
-    X = np.vstack((X1,X2))
-    X = X.T
+    bivariateFrankCopulaPassPercentage = 0
+    for ii in range(0,numMCSims):
+        alpha = invcopulastat('Frank', 'kendall', tau)
+        U = copularnd('Frank', M, N, alpha)
         
-    ret = optimalCopulaFamily(X)
-    print 'Input: Frank Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='frank'):
+            bivariateFrankCopulaPassPercentage = bivariateFrankCopulaPassPercentage + 1
+    bivariateFrankCopulaPassPercentage = bivariateFrankCopulaPassPercentage/float(numMCSims)*100.0
+    print 'Bivariate Frank Copula - Correct Identification Percentage = ' + str(bivariateFrankCopulaPassPercentage) + '%'
     
     ###################### CLAYTON COPULA EXPERIMENT #######################
-    alpha = invcopulastat('Clayton', 'kendall', tau)
-    U = copularnd('Clayton', M, N, alpha)
-    
-    X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-    X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-    
-    # combine X and Y into the joint distribution w/ the copula
-    X = np.vstack((X1,X2))
-    X = X.T
+    bivariateClaytonCopulaPercentage = 0
+    for ii in range(0,numMCSims):
+        alpha = invcopulastat('Clayton', 'kendall', tau)
+        U = copularnd('Clayton', M, N, alpha)
         
-    ret = optimalCopulaFamily(X)
-    print 'Input: Clayton Copula. Output: ' + ret[0] + ' copula with tau_hat=' + str(ret[2])
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='clayton'):
+            bivariateClaytonCopulaPercentage = bivariateClaytonCopulaPercentage + 1
+    bivariateClaytonCopulaPercentage = bivariateClaytonCopulaPercentage/float(numMCSims)*100.0
+    print 'Bivariate Clayton Copula - Correct Identification Percentage = ' + str(bivariateClaytonCopulaPercentage) + '%'
+    """
+    ###################### MULTIVARIATE (N > 2) TESTS #######################
+    N = 3
     
-    # TODO: test for multivariate dataset, where # vars > 2
+    """
+    ###################### GAUSSIAN COPULA EXPERIMENT #######################
+    multivariateGuassCopulaPassPercentage = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the Gaussian copula with tau same as the
+        # empirical signature we calculated above
+        r = invcopulastat('Gaussian', 'kendall', tau)
+        Rho = np.array([[1.0,r,r],[r,1.0,r],[r,r,1.0]])
+        U = copularnd('Gaussian', M, Rho)
+        
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2,X3))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='gaussian'):
+            multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage + 1.0
+    multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
+    print 'Multivariate Gaussian Copula - Correct Identification Percentage = ' + str(multivariateGuassCopulaPassPercentage) + '%'
+    """
+    
+    ###################### GUMBEL COPULA EXPERIMENT #######################
+    multivariateGuassCopulaPassPercentage = 0
+    for ii in range(0,numMCSims):
+        # generate samples of the gumbel copula with tau same as the
+        # empirical signature we calculated above
+        alpha = invcopulastat('Gumbel', 'kendall', tau)
+        U = copularnd('Gumbel', M, N, alpha)
+        
+        
+        
+        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
+        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
+        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack((X1,X2,X3))
+        X = X.T
+            
+        ret = optimalCopulaFamily(X)
+        if(ret[0].lower()=='gumbel'):
+            multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage + 1.0
+    multivariateGuassCopulaPassPercentage = multivariateGuassCopulaPassPercentage/float(numMCSims)*100.0
+    print 'Multivariate Gumbel Copula - Correct Identification Percentage = ' + str(multivariateGuassCopulaPassPercentage)

@@ -87,14 +87,14 @@ class stable:
         theta = math.pi * (uni1-1.0/2.0)
         w = -1*np.log(uni2)
         
-        if(alpha==1 and beta==0):
+        if(self.alpha==1 and beta==0):
             retVal = cau1
         else:
             b_tan_pa = self.beta * np.tan(math.pi/2.0 * self.alpha)
             theta0 = np.min(np.array([np.max(np.array([-math.pi/2.0, np.arctan(b_tan_pa)/self.alpha])), math.pi/2.0]))
             c = np.power((1 + b_tan_pa * b_tan_pa ), 1.0/(2.0*self.alpha))
             a_tht = self.alpha * (theta+theta0)
-            r = ( c*np.sin(a_tht)/np.power(np.cos(theta),(1.0/alpha)) ) * \
+            r = ( c*np.sin(a_tht)/np.power(np.cos(theta),(1.0/self.alpha)) ) * \
                 np.power( (np.cos(theta-a_tht)/w), ((1.0-self.alpha)/self.alpha) )
             
             retVal = r - b_tan_pa
@@ -113,7 +113,7 @@ class stable:
 ##' @return omega(.) = tan(pi/2 alpha) if alpha != 1 ...
 def _om(alpha, gamma):
     if(alpha != round(alpha)):
-        return np.tan(math.pi/2.0 * self.alpha)
+        return np.tan(math.pi/2.0 * alpha)
     elif(alpha==1):
         return (2.0/math.pi) * np.log(gamma)
     else:
@@ -122,6 +122,9 @@ def _om(alpha, gamma):
 if __name__=='__main__':
     # TODO: we should automatically run the R script to generate the test values
     # that way, when we add more tests, it just magically works :)
+
+    # TODO: should test this implementation of stable with rStable1 which is
+    # specifically in the copula package
 
     testFilename = 'R/stabledist/stabledist_test.txt'
     testIdx = 1
