@@ -30,7 +30,7 @@ from scipy.stats import uniform
 from scipy.stats import gamma
 from scipy.stats import logser
 from scipy.stats import t
-from stable import stable
+from rstable1 import rstable1
 from statsmodels.sandbox.distributions import multivariate as mvt
 
 """
@@ -212,8 +212,6 @@ def _gumbel(M, N, alpha):
             
         U = np.column_stack((u1,u2))
     else:
-        # TODO: I THINK GUMBEL MULTIVARIATE IS NTO QUITE RIGHT, THE STABLE is probably the problem
-        
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
         U = np.empty((M,N))
@@ -223,8 +221,7 @@ def _gumbel(M, N, alpha):
             g  = np.power(np.cos(math.pi/(2.0*alpha)), alpha)
             d  = 0
             pm = 1
-            s = stable(a, b, g, d, pm)
-            v = s.rvs()
+            v = rstable1(1,a,b,g,d,pm)
             
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
@@ -242,40 +239,59 @@ if __name__=='__main__':
     rh = 0.6
     Rho = np.array([[1,rh],[rh,1]])
     nu = 2
-    N = 2
+    N = 3
     alpha = 5
     
-    
+    # Generate 2-D Copula RV's
     Ug2d = copularnd('gaussian', M, Rho)
     Ut2d = copularnd('t', M, Rho, nu)
     Uc2d  = copularnd('clayton', M, N, alpha)
     Uf2d  = copularnd('frank', M, N, alpha)
     Ugu2d = copularnd('gumbel', M, N, alpha)
-
+    
+    # Generate 3-D Copula RV's
+    N = 3
+    Rho = np.array([[1,rh,rh],[rh,1,rh],[rh,rh,1]])
+    Ug3d = copularnd('gaussian', M, Rho)
+    Ut3d = copularnd('t', M, Rho, nu)
+    Ugu3d = copularnd('gumbel',M,N,alpha)
+    Uf3d = copularnd('frank',M,N,alpha)
+    Uc3d = copularnd('clayton',M,N,alpha)
+    
+    # 2-D plots
+    plt.scatter(Ug2d[:,0],Ug2d[:,1])
+    plt.title('Gaussian Copula Samples (2-D)')
+    plt.grid()
+    plt.axis((0,1,0,1))
+    plt.show()
+    
     plt.scatter(Ut2d[:,0],Ut2d[:,1])
-    plt.title('T Copula Samples')
+    plt.title('T Copula Samples (2-D)')
+    plt.grid()
+    plt.axis((0,1,0,1))
+    plt.show()
+    
+    plt.scatter(Uc2d[:,0],Uc2d[:,1])
+    plt.title('Clayton Copula Samples (2-D)')
+    plt.grid()
+    plt.axis((0,1,0,1))
+    plt.show()
+    
+    plt.scatter(Uf2d[:,0],Uf2d[:,1])
+    plt.title('Frank Copula Samples (2-D)')
+    plt.grid()
+    plt.axis((0,1,0,1))
+    plt.show()
+    
+    plt.scatter(Ugu2d[:,0],Ugu2d[:,1])
+    plt.title('Gumbel Copula Samples (2-D)')
     plt.grid()
     plt.axis((0,1,0,1))
     plt.show()
         
-    # generate 3-D gaussian copula, and plot 2x2's
-    Rho = np.array([[1,rh,rh],[rh,1,rh],[rh,rh,1]])
-    Ug3d = copularnd('gaussian', M, Rho)
     pairs(Ug3d, 'Gaussian')
-
-    # generate 3-D gumbel copula, and plot 2x2's
-    N = 3
-    Ugu3d = copularnd('gumbel',M,N,alpha)
+    pairs(Ut3d, 'T')
     pairs(Ugu3d, 'Gumbel')
-    
-    # generate 3-D Frank copula, and plot 2x2's
-    N = 3
-    Uf3d = copularnd('frank',M,N,alpha)
     pairs(Uf3d, 'Frank')
-    
-    # generate 3-D Clayton copula, and plot 2x2's
-    N = 3
-    Uc3d = copularnd('clayton',M,N,alpha)
     pairs(Uc3d, 'Clayton')
-    
     
