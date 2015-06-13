@@ -196,7 +196,6 @@ def _makeCoordsList(K):
     
     return coords_list
 
-############################## TODO ########################
 # the master function, which computes the correct copula family to choose from
 # will compare the empirical signatures to the actual signature for refernence
 # will do the following:
@@ -225,6 +224,8 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     # compute empirical multinomial signature
     empirical_mnsig = empirical_copulamnsig(X, K)
     empirical_mnsig = empirical_mnsig[0]['esig']
+    # replace any 0 values w/ smallest possible float value
+    empirical_mnsig[empirical_mnsig==0] = np.spacing(1)
     
     # compute the multinomial signature for each of the copula families specified
     # and simultaneously compute the kullback leibler divergence between the empirical
@@ -232,13 +233,15 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     distances = {}
     for family in family_search:
         mnsig = copulamnsig(family,K,'kendall',tau_hat)
-            
+        # replace any 0 values w/ smallest possible float value
+        mnsig[mnsig==0] = np.spacing(1)
+        
         # compute KL divergence, see
         # http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.stats.entropy.html
         distances[family] = entropy(mnsig, empirical_mnsig)
-    
+        
     # search for the minimum distance, that is the optimal copula family to use
-    minDistance = 1000000
+    minDistance = np.inf
     for family, distance in distances.iteritems():
         if distance<minDistance:
             minDistance = distance
@@ -248,8 +251,108 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     
     return (optimalFamily, depParams, tau_hat)
 
-if __name__=='__main__':
+def testHELM(tau, M, N, familyToTest, numMCSims, copulaFamiliesToTest):
+    results = {}
+    for fam in copulaFamiliesToTest:
+        results[fam.lower()] = 0
+    
+    for ii in range(0,numMCSims):
+        # generate samples of the requested copula with tau same as the
+        # empirical signature we calculated above
+        if(familyToTest.lower()=='gaussian'):
+            r = invcopulastat(familyToTest, 'kendall', tau)
+            
+            # TODO: make the below block of code more efficient :)
+            Rho = np.empty((N,N))
+            for jj in range(0,N):
+                for kk in range(0,N):
+                    if(jj==kk):
+                        Rho[jj][kk] = 1
+                    else:
+                        Rho[jj][kk] = r
+            
+            U = copularnd(familyToTest, M, Rho)
+        else:       # assume Clayton, Frank, or Gumbel
+            alpha = invcopulastat(familyToTest, 'kendall', tau)
+            U = copularnd(familyToTest, M, N, alpha)
+        
+        lst = []
+        for jj in range(0,N):
+            if(jj%2==0):
+                lst.append(norm.ppf(U[:,jj]))
+            else:
+                lst.append(expon.ppf(U[:,jj]))
+        
+        # combine X and Y into the joint distribution w/ the copula
+        X = np.vstack(lst)
+        X = X.T
+            
+        ret = optimalCopulaFamily(X, family_search=copulaFamiliesToTest)
+        ret_family = ret[0].lower()
+        # aggregate results
+        results[ret_family] = results[ret_family] + 1.0
+        
+        # display some progress
+        sys.stdout.write("\rComputing " + str(familyToTest) + " Copula (DIM=%d) (tau=%f)-- %d%%" % (N,tau,ii+1))
+        sys.stdout.flush()
+    
+    sys.stdout.write("\r")
+    return results
 
+def plotPieChartResults(results, family, title):
+    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']      # for the pie chart
+    # explode the Gaussian portion fo the pychart
+    expTup = [0,0,0,0]
+    expTup[results.keys().index(family.lower())] = 0.1
+    plt.pie(results.values(), explode=expTup, labels=results.keys(),
+            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.title(title)
+    plt.show()
+    
+
+def testHELM_parametric():
+    # some tests on the copula multinomial signature
+    
+    K = 4
+    M = 1000
+    N = 2
+    
+    # Monte-Carlo style simulations to test each copula generation
+    numMCSims = 100
+    # the families to test against and pick optimal copula
+    families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
+    tauVec = np.linspace(0.3,0.4,2)
+    
+    resultsAggregate = {}
+    for tau in tauVec:
+        famResults = {}
+        for family in families:
+            results = testHELM(tau, M, N, family, numMCSims, families)
+            famResults[family] = results
+        resultsAggregate[tau] = famResults
+
+    # plot the parametric results for fun
+    for fam in families:
+        refGauVec = np.empty(tauVec.shape)
+        refFraVec = np.empty(tauVec.shape)
+        refClaVec = np.empty(tauVec.shape)
+        refGumVec = np.empty(tauVec.shape)
+        ii = 0
+        for tau in tauVec:
+            refGauVec[ii] = resultsAggregate[tau][fam]['gaussian']
+            refFraVec[ii] = resultsAggregate[tau][fam]['clayton']
+            refClaVec[ii] = resultsAggregate[tau][fam]['gumbel']
+            refGumVec[ii] = resultsAggregate[tau][fam]['frank']
+            ii = ii + 1
+                
+        plt.plot(tauVec, refGauVec, tauVec, refFraVec, tauVec, refClaVec, tauVec, refGumVec)
+        plt.title(fam + ' Reference Copula')
+        plt.show()
+        
+    return resultsAggregate
+
+
+if __name__=='__main__':
     from copularnd import copularnd
     from invcopulastat import invcopulastat
     from scipy.stats import norm
@@ -271,6 +374,7 @@ if __name__=='__main__':
     else:
         print 'CopulaMNSig total probability check failed!'
     
+    
     M = 1000
     N = 2
     
@@ -278,291 +382,29 @@ if __name__=='__main__':
     numMCSims = 100
     # the families to test against and pick optimal copula
     families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
-    colors = ['yellowgreen', 'gold', 'lightskyblue', 'lightcoral']      # for the pie chart
-
-    ###################### GAUSSIAN COPULA EXPERIMENT #######################
-    bivariateGaussResults = {}
-    for family in families:
-        bivariateGaussResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the Gaussian copula with tau same as the
-        # empirical signature we calculated above
-        r = invcopulastat('Gaussian', 'kendall', tau)
-        Rho = np.array([[1.0,r],[r,1.0]])
-        U = copularnd('Gaussian', M, Rho)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X, family_search=families)
-        ret_family = ret[0].lower()
-        # aggregate results
-        bivariateGaussResults[ret_family] = bivariateGaussResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Bivariate Gaussian Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-        
-    # explode the Gaussian portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[bivariateGaussResults.keys().index('gaussian')] = 0.1
-    plt.pie(bivariateGaussResults.values(), explode=expTup, labels=bivariateGaussResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Bivariate Gaussian Copula - HELM Identification Breakdown')
-    plt.show()
-    sys.stdout.write("\r")
     
-
-    ###################### GUMBEL COPULA EXPERIMENT #######################
-    bivariateGumbelResults = {}
+    """
     for family in families:
-        bivariateGumbelResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the gumbel copula with tau same as the
-        # empirical signature we calculated above
-        alpha = invcopulastat('Gumbel', 'kendall', tau)
-        U = copularnd('Gumbel', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        bivariateGumbelResults[ret_family] = bivariateGumbelResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Bivariate Gumbel Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-        
-    # explode the Gumbel portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[bivariateGumbelResults.keys().index('gumbel')] = 0.1
-    plt.pie(bivariateGumbelResults.values(), explode=expTup, labels=bivariateGumbelResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Bivariate Gumbel Copula - HELM Identification Breakdown')
-    plt.show()
-    sys.stdout.write("\r")
+        title = 'Reference Bivariate ' + str(family) + ' Copula - HELM Identification Breakdown'
+        results = testHELM(tau, M, N, family, numMCSims, families)
+        plotPieChartResults(results, family, title)
     
-    ###################### FRANK COPULA EXPERIMENT #######################
-    bivariateFrankResults = {}
-    for family in families:
-        bivariateFrankResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        alpha = invcopulastat('Frank', 'kendall', tau)
-        U = copularnd('Frank', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        bivariateFrankResults[ret_family] = bivariateFrankResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Bivariate Frank Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-    
-    # explode the Frank portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[bivariateFrankResults.keys().index('frank')] = 0.1
-    plt.pie(bivariateFrankResults.values(), explode=expTup, labels=bivariateFrankResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Bivariate Frank Copula - HELM Identification Breakdown')
-    plt.show()    
-    sys.stdout.write("\r")
-    
-    ###################### CLAYTON COPULA EXPERIMENT #######################
-    bivariateClaytonResults = {}
-    for family in families:
-        bivariateClaytonResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        alpha = invcopulastat('Clayton', 'kendall', tau)
-        U = copularnd('Clayton', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        bivariateClaytonResults[ret_family] = bivariateClaytonResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Bivariate Clayton Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-
-    # explode the Clayton portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[bivariateClaytonResults.keys().index('clayton')] = 0.1
-    plt.pie(bivariateClaytonResults.values(), explode=expTup, labels=bivariateClaytonResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Bivariate Clayton Copula - HELM Identification Breakdown')
-    plt.show()            
-    sys.stdout.write("\r")
-
-    ###################### MULTIVARIATE (N > 2) TESTS #######################
     N = 3
-    
-    ###################### GAUSSIAN COPULA EXPERIMENT #######################
-    multivariateGaussResults = {}
     for family in families:
-        multivariateGaussResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the Gaussian copula with tau same as the
-        # empirical signature we calculated above
-        r = invcopulastat('Gaussian', 'kendall', tau)
-        Rho = np.array([[1.0,r,r],[r,1.0,r],[r,r,1.0]])
-        U = copularnd('Gaussian', M, Rho)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2,X3))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        multivariateGaussResults[ret_family] = multivariateGaussResults[ret_family] + 1.0
-            
-        # display some progress
-        sys.stdout.write("\rComputing Multivariate Gaussian Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
+        title = 'Reference Bivariate ' + str(family) + ' Copula - HELM Identification Breakdown'
+        results = testHELM(tau, M, N, family, numMCSims, families)
+        plotPieChartResults(results, family, title)
     
-    # explode the Gaussian portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[multivariateGaussResults.keys().index('gaussian')] = 0.1
-    plt.pie(multivariateGaussResults.values(), explode=expTup, labels=multivariateGaussResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Multivariate Gaussian Copula - HELM Identification Breakdown')
-    plt.show()            
-    sys.stdout.write("\r")
+    resultsAggregate = testHELM_parametric()
+    """
     
-    ###################### GUMBEL COPULA EXPERIMENT #######################
-    multivariateGumbelResults = {}
-    for family in families:
-        multivariateGumbelResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the gumbel copula with tau same as the
-        # empirical signature we calculated above
-        alpha = invcopulastat('Gumbel', 'kendall', tau)
-        U = copularnd('Gumbel', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2,X3))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        multivariateGumbelResults[ret_family] = multivariateGumbelResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Multivariate Gumbel Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-            
-    # explode the Gumbel portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[multivariateGumbelResults.keys().index('gumbel')] = 0.1
-    plt.pie(multivariateGumbelResults.values(), explode=expTup, labels=multivariateGumbelResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Multivariate Gumbel Copula - HELM Identification Breakdown')
-    plt.show()            
-    sys.stdout.write("\r")
+    tau = -0.9
+    # Monte-Carlo style simulations to test each copula generation
+    numMCSims = 100
+    family = 'Clayton'
+    title = 'Reference Bivariate ' + str(family) + ' Copula - HELM Identification Breakdown'
+    results = testHELM(tau, M, N, family, numMCSims, families)
+    plotPieChartResults(results, family, title)
+
     
-    ###################### FRANK COPULA EXPERIMENT #######################
-    multivariateFrankResults = {}
-    for family in families:
-        multivariateFrankResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the gumbel copula with tau same as the
-        # empirical signature we calculated above
-        alpha = invcopulastat('Frank', 'kendall', tau)
-        U = copularnd('Frank', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2,X3))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        multivariateFrankResults[ret_family] = multivariateFrankResults[ret_family] + 1.0
-        
-        # display some progress
-        sys.stdout.write("\rComputing Multivariate Frank Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-            
-    # explode the Gumbel portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[multivariateFrankResults.keys().index('frank')] = 0.1
-    plt.pie(multivariateFrankResults.values(), explode=expTup, labels=multivariateFrankResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Multivariate Frank Copula - HELM Identification Breakdown')
-    plt.show()            
-    sys.stdout.write("\r")
-    
-    ###################### CLAYTON COPULA EXPERIMENT #######################
-    multivariateClaytonResults = {}
-    for family in families:
-        multivariateClaytonResults[family.lower()] = 0
-    for ii in range(0,numMCSims):
-        # generate samples of the gumbel copula with tau same as the
-        # empirical signature we calculated above
-        alpha = invcopulastat('Clayton', 'kendall', tau)
-        U = copularnd('Clayton', M, N, alpha)
-        
-        X1 = norm.ppf(U[:,0])       # assume mean=0, var=1
-        X2 = expon.ppf(U[:,1])      # assume mean=0, var=1
-        X3 = expon.ppf(U[:,2])      # assume mean=0, var=1
-        
-        # combine X and Y into the joint distribution w/ the copula
-        X = np.vstack((X1,X2,X3))
-        X = X.T
-            
-        ret = optimalCopulaFamily(X)
-        ret_family = ret[0].lower()
-        # aggregate results
-        multivariateClaytonResults[ret_family] = multivariateClaytonResults[ret_family] + 1.0
-            
-        # display some progress
-        sys.stdout.write("\rComputing Multivariate Clayton Copula -- %d%%" % (ii+1))
-        sys.stdout.flush()
-        
-    # explode the Gumbel portion fo the pychart
-    expTup = [0,0,0,0]
-    expTup[multivariateClaytonResults.keys().index('clayton')] = 0.1
-    plt.pie(multivariateClaytonResults.values(), explode=expTup, labels=multivariateClaytonResults.keys(),
-            colors=colors, autopct='%1.1f%%', shadow=True, startangle=90)
-    plt.title('Reference Multivariate Clayton Copula - HELM Identification Breakdown')
-    plt.show()            
-    sys.stdout.write("\r")
     
