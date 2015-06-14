@@ -354,7 +354,7 @@ def testHELM_parametric():
     N = 2
     
     # Monte-Carlo style simulations to test each copula generation
-    numMCSims = 100
+    numMCSims = 1000
     # the families to test against and pick optimal copula
     families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
         
@@ -399,10 +399,12 @@ def testHELM_parametric():
         plt.plot(tauVec, refClaVec, 'r.-', label='Gumbel Copula')
         plt.plot(tauVec, refGumVec, 'k.-', label='Frank Copula')
         plt.legend()
-        plt.title(fam + ' Reference Copula')
+        plt.title(fam + ' Reference Copula, $\tau$=' + "{0:.2f}".format(tau) + ' K=' + str(K))
         plt.grid()
         plt.xlabel(r"Kendall's $\tau$")
         plt.ylabel('Selection Percentage')
+        plt.savefig(os.path.join('figures/HELM_performance/', 
+                     fam + 'Copula_DIM_' + str(N) + '_HELM_ParametricTau_K_' + str(K) + '.png'))
         plt.show()
         
     return resultsAggregate
@@ -415,6 +417,7 @@ if __name__=='__main__':
     from scipy.stats import expon
     import sys
     import matplotlib.pyplot as plt
+    import os
 
     # some tests on the copula multinomial signature
     tau = 0.4
