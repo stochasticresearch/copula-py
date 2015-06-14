@@ -70,6 +70,8 @@ def _t(dependency, val):
 
 def _clayton(dependency, val):
     if(dependency=='kendall'):
+        if(val<0 or val>=1):
+            raise ValueError('Valid values of Kendall\'s Tau for the Clayton Copula are [0,1)')
         d = 2.0*val/(1.0-val)
     elif(dependency=='spearman'):
         raise NotImplementedError('Spearmans Rho currently unsupported for Clayton Copula family!')
@@ -78,6 +80,8 @@ def _clayton(dependency, val):
 
 def _gumbel(dependency, val):
     if(dependency=='kendall'):
+        if(val<0 or val>=1):
+            raise ValueError('Valid values of Kendall\'s Tau for the Gumbel Copula are [0,1)')
         d = 1.0/(1.0-val)
     elif(dependency=='spearman'):
         raise NotImplementedError('Spearmans Rho currently unsupported for Gumbel Copula family!')

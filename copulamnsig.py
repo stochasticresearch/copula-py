@@ -232,6 +232,42 @@ def optimalCopulaFamily(X, K=4, family_search=['Gaussian', 'Clayton', 'Gumbel', 
     # and the computed, and store that info
     distances = {}
     for family in family_search:
+        # because the Clayton and Gumbel Copula's have restrictions for the valid values of
+        # Kendall's tau, we do checks here to ensure those restrictions are met, because there
+        # will be a certain variance associated with the tau_hat measurement
+        
+        if(family.lower()=='clayton'):
+            # here we add some additional optimizatons as follows.  We know that the Clayton copula
+            # captures only positive concordance.  Like any estimator, tau_hat will have some variance
+            # associated with it.  Thus, the optimization we make is as follows, if tau_hat is within
+            # a configurable amount less than 0, then we will set tau_hat to 0 and continue processing.  
+            # However, if tau_hat is greater than that, we theoretically wouldn't have to test against 
+            # the Clayton copula model, so we set the KL-divergence to be infinity to exclude 
+            # this family from being selected
+            if(tau_hat<-0.05):
+                distances[family] = np.inf
+                continue
+            elif(tau_hat>=-0.05 and tau_hat<0):
+                tau_hat = 0
+            elif(tau_hat>=1):
+                tau_hat = 1 - np.spacing(1)     # as close to 1 as possible in our precision
+        elif(family.lower()=='gumbel'):
+            # here we add some additional optimizatons as follows.  We know that the Gumbel copula
+            # captures only positive concordance.  Like any estimator, tau_hat will have some variance
+            # associated with it.  Thus, the optimization we make is as follows, if tau_hat is within
+            # a configurable amount less than 0, then we will set tau_hat to 0 and continue processing.  
+            # However, if tau_hat is greater than that, we theoretically wouldn't have to test against 
+            # the Gumbel copula model, so we set the KL-divergence to be infinity to exclude 
+            # this family from being selected
+            if(tau_hat<-0.05):
+                distances[family] = np.inf
+                continue
+            elif(tau_hat>=-0.05 and tau_hat<0):
+                tau_hat = 0
+            elif(tau_hat>=1):
+                tau_hat = 1 - np.spacing(1)     # as close to 1 as possible in our precision
+        # any other copula families with restrictions can go here
+        
         mnsig = copulamnsig(family,K,'kendall',tau_hat)
         # replace any 0 values w/ smallest possible float value
         mnsig[mnsig==0] = np.spacing(1)
@@ -321,32 +357,52 @@ def testHELM_parametric():
     numMCSims = 100
     # the families to test against and pick optimal copula
     families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
-    tauVec = np.linspace(0.3,0.4,2)
-    
+        
     resultsAggregate = {}
-    for tau in tauVec:
+    family_tauvec_mapping = {}
+    for family in families:
+        # we do this here b/c some values of tau don't make sense for some families
+        # of copula's
+        if(family=='Gaussian'):
+            tauVec = np.arange(-0.9,0.9,0.05)
+        elif(family=='Clayton'):
+            tauVec = np.arange(0,0.9,0.05)
+        elif(family=='Gumbel'):
+            tauVec = np.arange(0,0.9,0.05)
+        elif(family=='Frank'):
+            tauVec = np.arange(-0.9,0.9,0.05)
+        family_tauvec_mapping[family] = tauVec
+        
         famResults = {}
-        for family in families:
+        for tau in tauVec:
             results = testHELM(tau, M, N, family, numMCSims, families)
-            famResults[family] = results
-        resultsAggregate[tau] = famResults
+            famResults[tau] = results
+        resultsAggregate[family] = famResults
 
     # plot the parametric results for fun
     for fam in families:
+        tauVec = family_tauvec_mapping[fam]
         refGauVec = np.empty(tauVec.shape)
         refFraVec = np.empty(tauVec.shape)
         refClaVec = np.empty(tauVec.shape)
         refGumVec = np.empty(tauVec.shape)
         ii = 0
         for tau in tauVec:
-            refGauVec[ii] = resultsAggregate[tau][fam]['gaussian']
-            refFraVec[ii] = resultsAggregate[tau][fam]['clayton']
-            refClaVec[ii] = resultsAggregate[tau][fam]['gumbel']
-            refGumVec[ii] = resultsAggregate[tau][fam]['frank']
+            refGauVec[ii] = resultsAggregate[fam][tau]['gaussian']
+            refFraVec[ii] = resultsAggregate[fam][tau]['clayton']
+            refClaVec[ii] = resultsAggregate[fam][tau]['gumbel']
+            refGumVec[ii] = resultsAggregate[fam][tau]['frank']
             ii = ii + 1
                 
-        plt.plot(tauVec, refGauVec, tauVec, refFraVec, tauVec, refClaVec, tauVec, refGumVec)
+        plt.plot(tauVec, refGauVec, 'b.-', label='Gaussian Copula')
+        plt.plot(tauVec, refFraVec, 'g.-', label='Clayton Copula')
+        plt.plot(tauVec, refClaVec, 'r.-', label='Gumbel Copula')
+        plt.plot(tauVec, refGumVec, 'k.-', label='Frank Copula')
+        plt.legend()
         plt.title(fam + ' Reference Copula')
+        plt.grid()
+        plt.xlabel(r"Kendall's $\tau$")
+        plt.ylabel('Selection Percentage')
         plt.show()
         
     return resultsAggregate
@@ -394,17 +450,8 @@ if __name__=='__main__':
         title = 'Reference Bivariate ' + str(family) + ' Copula - HELM Identification Breakdown'
         results = testHELM(tau, M, N, family, numMCSims, families)
         plotPieChartResults(results, family, title)
-    
-    resultsAggregate = testHELM_parametric()
     """
+    resultsAggregate = testHELM_parametric()
     
-    tau = -0.9
-    # Monte-Carlo style simulations to test each copula generation
-    numMCSims = 100
-    family = 'Clayton'
-    title = 'Reference Bivariate ' + str(family) + ' Copula - HELM Identification Breakdown'
-    results = testHELM(tau, M, N, family, numMCSims, families)
-    plotPieChartResults(results, family, title)
-
     
     
