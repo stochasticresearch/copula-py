@@ -125,6 +125,8 @@ def _t(M, Rho, nu):
 # This method is outlined in Nelsen's Introduction to Copula's
 
 def _clayton(M, N, alpha):
+    if(alpha<0):
+        raise ValueError('Alpha must be >=0 for Clayton Copula Family')
     if(N<2):
         raise ValueError('Dimensionality Argument [N] must be an integer >= 2')
     elif(N==2):
@@ -189,7 +191,7 @@ def _frank(M, N, alpha):
 
 def _gumbel(M, N, alpha):
     if alpha < 1:
-        raise ValueError('Bad Gumbel Dependency Parameter!')
+        raise ValueError('Alpha must be >=1 for Gumbel Copula Family!')
     if(N<2):
         raise ValueError('Dimensionality Argument [N] must be an integer >= 2')
     elif(N==2):

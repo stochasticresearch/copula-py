@@ -84,7 +84,6 @@ def copulamnsig(family, K, *args):
     # left coordinates of the box and the upper right coordinates of the box
     # are stored as keys 'u1v1' and 'u2v2', and then the actual value of the 
     # multinomial signature in that grid is stored as 'val'
-    #mnsig = []
     
     mnsig = []
     for coord in coords_list:
@@ -93,7 +92,10 @@ def copulamnsig(family, K, *args):
         u1v2 = coord[1]
         u2v1 = coord[2]
         u2v2 = coord[3]
-        val = cvolume(family, u1v1, u1v2, u2v1, u2v2, *args)
+        try:
+            val = cvolume(family, u1v1, u1v2, u2v1, u2v2, *args)
+        except ValueError:
+            val = np.array([-1])        # for compatibility we put the numpy wrapper
 
         mnsig.append(val[0])
     
@@ -393,11 +395,14 @@ def testHELM_parametric():
             refClaVec[ii] = resultsAggregate[fam][tau]['gumbel']
             refGumVec[ii] = resultsAggregate[fam][tau]['frank']
             ii = ii + 1
-                
-        plt.plot(tauVec, refGauVec, 'b.-', label='Gaussian Copula')
-        plt.plot(tauVec, refFraVec, 'g.-', label='Clayton Copula')
-        plt.plot(tauVec, refClaVec, 'r.-', label='Gumbel Copula')
-        plt.plot(tauVec, refGumVec, 'k.-', label='Frank Copula')
+        if(np.sum(refGauVec)>0):        
+            plt.plot(tauVec, refGauVec, 'b.-', label='Gaussian Copula')
+        if(np.sum(refFraVec)>0):
+            plt.plot(tauVec, refFraVec, 'g.-', label='Clayton Copula')
+        if(np.sum(refClaVec)>0):
+            plt.plot(tauVec, refClaVec, 'r.-', label='Gumbel Copula')
+        if(np.sum(refGumVec)>0):
+            plt.plot(tauVec, refGumVec, 'k.-', label='Frank Copula')
         plt.legend()
         plt.title(fam + ' Reference Copula, $\tau$=' + "{0:.2f}".format(tau) + ' K=' + str(K))
         plt.grid()
@@ -408,6 +413,106 @@ def testHELM_parametric():
         plt.show()
         
     return resultsAggregate
+
+def visualizeMNSig():
+    # some tests on the copula multinomial signature
+    
+    K = 4
+    M = 1000
+    N = 2
+    
+    # the families to test against and pick optimal copula
+    families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
+        
+    resultsAggregate = {}
+    tauVec = np.arange(-0.9,0.95,0.05)
+    
+    for family in families:
+        famResults = {}
+        for tau in tauVec:
+            mnsig = copulamnsig(family,K,'kendall',tau)
+            famResults[tau] = mnsig
+        resultsAggregate[family] = famResults
+
+    # visualize the results
+    for tau in tauVec:
+        # we would also like to visualize this copula on the side, to try to 
+        # understand what may be a better way todo model selection
+        try:
+            r = invcopulastat('Gaussian', 'kendall', tau)
+        except ValueError:
+            r = -1
+        Rho = np.array([[1,r],[r,1]])
+        
+        try:
+            alpha_clayton = invcopulastat('Clayton', 'kendall', tau)
+        except ValueError:
+            alpha_clayton = -1
+        
+        try:
+            alpha_gumbel  = invcopulastat('Gumbel', 'kendall', tau)
+        except ValueError:
+            alpha_gumbel = -1
+            
+        try:
+            alpha_frank   = invcopulastat('Frank', 'kendall', tau)
+        except ValueError:
+            alpha_frank   = -1
+        
+        if(r!=-1):
+            U_gauss   = copularnd('Gaussian', M, Rho)
+        if(alpha_clayton!=-1):
+            U_clayton = copularnd('Clayton', M, N, alpha_clayton)
+        if(alpha_frank!=-1):
+            U_frank   = copularnd('Frank', M, N, alpha_frank)
+        if(alpha_gumbel!=-1):
+            U_gumbel  = copularnd('Gumbel', M, N, alpha_gumbel)
+        
+        # get each family's MN signature and plot it
+        plt.figure(figsize=(30,20))
+        
+        plt.subplot(131)
+        if(np.sum(resultsAggregate['Gaussian'][tau])>0):
+            plt.plot(np.arange(1,K*K+1), resultsAggregate['Gaussian'][tau], 'b.-', label='Gaussian Copula')
+        if(np.sum(resultsAggregate['Clayton'][tau])>0):
+            plt.plot(np.arange(1,K*K+1), resultsAggregate['Clayton'][tau], 'g.-', label='Clayton Copula')
+        if(np.sum(resultsAggregate['Gumbel'][tau])>0):
+            plt.plot(np.arange(1,K*K+1), resultsAggregate['Gumbel'][tau], 'r.-', label='Gumbel Copula')
+        if(np.sum(resultsAggregate['Frank'][tau])>0):
+            plt.plot(np.arange(1,K*K+1), resultsAggregate['Frank'][tau], 'k.-', label='Frank Copula')
+        
+        plt.title(r'Copula Multinomial Signature $\tau$=' + str(tau) + ' K=' + str(K))
+        plt.legend()
+        plt.grid()
+        
+        plt.subplot(232)
+        if(r!=-1):
+            plt.scatter(U_gauss[:,0], U_gauss[:,1])
+        plt.grid()
+        plt.title(r'Gaussian Copula, $\rho$=' + "{0:.2f}".format(r) + r' $\tau$=' + "{0:.2f}".format(tau))
+        
+        plt.subplot(233)
+        if(alpha_clayton!=-1):
+            plt.scatter(U_clayton[:,0], U_clayton[:,1])
+        plt.grid()
+        plt.title(r'Clayton Copula, $\alpha$=' + "{0:.2f}".format(alpha_clayton) + r' $\tau$=' + "{0:.2f}".format(tau))
+        
+        plt.subplot(235)
+        if(alpha_frank!=-1):
+            plt.scatter(U_frank[:,0], U_frank[:,1])
+        plt.grid()
+        plt.title(r'Frank Copula, $\alpha$=' + "{0:.2f}".format(alpha_frank[0]) + r' $\tau$=' + "{0:.2f}".format(tau))
+        
+        plt.subplot(236)
+        if(alpha_gumbel!=-1):
+            plt.scatter(U_gumbel[:,0], U_gumbel[:,1])
+        plt.grid()
+        plt.title(r'Gumbel Copula, $\alpha$=' + "{0:.2f}".format(alpha_gumbel) + r' $\tau$=' + "{0:.2f}".format(tau))
+        
+        plt.savefig(os.path.join('figures/HELM_performance/', 
+                     'HELM_DIM_' + str(N) + '_tau_' + "{0:.2f}".format(tau) + ' _K_' + str(K) + '.png'))
+        
+        plt.close()
 
 
 if __name__=='__main__':
@@ -454,7 +559,8 @@ if __name__=='__main__':
         results = testHELM(tau, M, N, family, numMCSims, families)
         plotPieChartResults(results, family, title)
     """
-    resultsAggregate = testHELM_parametric()
+    #resultsAggregate = testHELM_parametric()
+    visualizeMNSig()
     
     
     
