@@ -83,7 +83,7 @@ def probability_integral_transform(X):
                                 # for example, cubic, or spline etc...?
         
         # plug this RV sample into the empirical cdf to get uniform RV
-        u_ii = f(x_ii)
+        u_ii = f(x_ii)           
         U[:,ii] = u_ii
         
     return U

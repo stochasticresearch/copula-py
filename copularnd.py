@@ -177,9 +177,15 @@ def _frank(M, N, alpha):
     else:
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
+        if(alpha<=0):
+            raise ValueError('For N>=3, alpha >0 in Frank Copula')
+            
         U = np.empty((M,N))
         for ii in range(0,M):
             p = -1.0*np.expm1(-1*alpha)
+            if(p==1):
+                # boundary case protection
+                p = 1 - np.spacing(1)
             v = logser.rvs(p, size=1)
             
             # sample N independent uniform random variables

@@ -93,7 +93,7 @@ def _frank_kendall_fopt(alpha, tau):
 
 def _frank(dependency, val):
     if(dependency=='kendall'):
-        return fsolve(_frank_kendall_fopt, 1, args=(val))
+        return fsolve(_frank_kendall_fopt, 1, args=(val))[0]
     elif(dependency=='spearman'):
         # TODO --  use function solvers in scipy to invert debye function for the closed form solution
         raise NotImplementedError('Spearmans Rho currently unsupported for Frank Copula family!')

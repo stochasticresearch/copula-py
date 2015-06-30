@@ -300,7 +300,6 @@ def testHELM(tau, M, N, familyToTest, numMCSims, copulaFamiliesToTest):
         if(familyToTest.lower()=='gaussian'):
             r = invcopulastat(familyToTest, 'kendall', tau)
             
-            # TODO: make the below block of code more efficient :)
             Rho = np.empty((N,N))
             for jj in range(0,N):
                 for kk in range(0,N):
@@ -308,23 +307,33 @@ def testHELM(tau, M, N, familyToTest, numMCSims, copulaFamiliesToTest):
                         Rho[jj][kk] = 1
                     else:
                         Rho[jj][kk] = r
-            
-            U = copularnd(familyToTest, M, Rho)
+            try:
+                U = copularnd(familyToTest, M, Rho)
+            except ValueError:
+                # copularnd will throw a ValueError if Rho is not a positive semidefinite matrix
+                return results      # return 0, which will then be ignored by tests
+                
         else:       # assume Clayton, Frank, or Gumbel
-            alpha = invcopulastat(familyToTest, 'kendall', tau)
-            U = copularnd(familyToTest, M, N, alpha)
-        
+            try:
+                alpha = invcopulastat(familyToTest, 'kendall', tau)
+                U = copularnd(familyToTest, M, N, alpha)
+            except ValueError:
+                continue
+            
         lst = []
         for jj in range(0,N):
+            U_conditioned = U[:,jj]
+            # if there are any 1's, condition it
+            U_conditioned[U_conditioned==1] = 0.99
             if(jj%2==0):
-                lst.append(norm.ppf(U[:,jj]))
+                lst.append(norm.ppf(U_conditioned))
             else:
-                lst.append(expon.ppf(U[:,jj]))
+                lst.append(expon.ppf(U_conditioned))
         
         # combine X and Y into the joint distribution w/ the copula
         X = np.vstack(lst)
         X = X.T
-            
+                    
         ret = optimalCopulaFamily(X, family_search=copulaFamiliesToTest)
         ret_family = ret[0].lower()
         # aggregate results
@@ -335,6 +344,11 @@ def testHELM(tau, M, N, familyToTest, numMCSims, copulaFamiliesToTest):
         sys.stdout.flush()
     
     sys.stdout.write("\r")
+    
+    # convert results to percentage
+    for fam in copulaFamiliesToTest:
+        results[fam.lower()] = results[fam.lower()]/float(numMCSims) * 100
+    
     return results
 
 def plotPieChartResults(results, family, title):
@@ -348,70 +362,21 @@ def plotPieChartResults(results, family, title):
     plt.show()
     
 
-def testHELM_parametric():
+def testHELM_parametric(K,M,N,tauVec,families):
     # some tests on the copula multinomial signature
-    
-    K = 4
-    M = 1000
-    N = 2
     
     # Monte-Carlo style simulations to test each copula generation
     numMCSims = 1000
-    # the families to test against and pick optimal copula
-    families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
-        
+    
     resultsAggregate = {}
-    family_tauvec_mapping = {}
-    for family in families:
-        # we do this here b/c some values of tau don't make sense for some families
-        # of copula's
-        if(family=='Gaussian'):
-            tauVec = np.arange(-0.9,0.9,0.05)
-        elif(family=='Clayton'):
-            tauVec = np.arange(0,0.9,0.05)
-        elif(family=='Gumbel'):
-            tauVec = np.arange(0,0.9,0.05)
-        elif(family=='Frank'):
-            tauVec = np.arange(-0.9,0.9,0.05)
-        family_tauvec_mapping[family] = tauVec
-        
+    
+    for family in families:    
         famResults = {}
         for tau in tauVec:
             results = testHELM(tau, M, N, family, numMCSims, families)
             famResults[tau] = results
         resultsAggregate[family] = famResults
-
-    # plot the parametric results for fun
-    for fam in families:
-        tauVec = family_tauvec_mapping[fam]
-        refGauVec = np.empty(tauVec.shape)
-        refFraVec = np.empty(tauVec.shape)
-        refClaVec = np.empty(tauVec.shape)
-        refGumVec = np.empty(tauVec.shape)
-        ii = 0
-        for tau in tauVec:
-            refGauVec[ii] = resultsAggregate[fam][tau]['gaussian']
-            refFraVec[ii] = resultsAggregate[fam][tau]['clayton']
-            refClaVec[ii] = resultsAggregate[fam][tau]['gumbel']
-            refGumVec[ii] = resultsAggregate[fam][tau]['frank']
-            ii = ii + 1
-        if(np.sum(refGauVec)>0):        
-            plt.plot(tauVec, refGauVec, 'b.-', label='Gaussian Copula')
-        if(np.sum(refFraVec)>0):
-            plt.plot(tauVec, refFraVec, 'g.-', label='Clayton Copula')
-        if(np.sum(refClaVec)>0):
-            plt.plot(tauVec, refClaVec, 'r.-', label='Gumbel Copula')
-        if(np.sum(refGumVec)>0):
-            plt.plot(tauVec, refGumVec, 'k.-', label='Frank Copula')
-        plt.legend()
-        plt.title(fam + ' Reference Copula, $\tau$=' + "{0:.2f}".format(tau) + ' K=' + str(K))
-        plt.grid()
-        plt.xlabel(r"Kendall's $\tau$")
-        plt.ylabel('Selection Percentage')
-        plt.savefig(os.path.join('figures/HELM_performance/', 
-                     fam + 'Copula_DIM_' + str(N) + '_HELM_ParametricTau_K_' + str(K) + '.png'))
-        plt.show()
-        
+    
     return resultsAggregate
 
 def visualizeMNSig():
@@ -419,13 +384,14 @@ def visualizeMNSig():
     
     K = 4
     M = 1000
-    N = 2
-    
+    N = 3
+    tauVec = np.arange(-0.9,0.95,0.05)
     # the families to test against and pick optimal copula
     families = ['Gaussian', 'Clayton', 'Gumbel', 'Frank']
+    
+    helmAccuracyResults = testHELM_parametric(K,M,N,tauVec,families)
         
     resultsAggregate = {}
-    tauVec = np.arange(-0.9,0.95,0.05)
     
     for family in families:
         famResults = {}
@@ -442,7 +408,13 @@ def visualizeMNSig():
             r = invcopulastat('Gaussian', 'kendall', tau)
         except ValueError:
             r = -1
-        Rho = np.array([[1,r],[r,1]])
+        Rho = np.empty((N,N))
+        for jj in range(0,N):
+            for kk in range(0,N):
+                if(jj==kk):
+                    Rho[jj][kk] = 1
+                else:
+                    Rho[jj][kk] = r
         
         try:
             alpha_clayton = invcopulastat('Clayton', 'kendall', tau)
@@ -460,18 +432,30 @@ def visualizeMNSig():
             alpha_frank   = -1
         
         if(r!=-1):
-            U_gauss   = copularnd('Gaussian', M, Rho)
+            try:
+                U_gauss   = copularnd('Gaussian', M, Rho)
+            except ValueError:
+                U_gauss   = np.zeros((M,N))
         if(alpha_clayton!=-1):
-            U_clayton = copularnd('Clayton', M, N, alpha_clayton)
+            try:
+                U_clayton = copularnd('Clayton', M, N, alpha_clayton)
+            except ValueError:
+                U_clayton   = np.zeros((M,N))
         if(alpha_frank!=-1):
-            U_frank   = copularnd('Frank', M, N, alpha_frank)
+            try:
+                U_frank   = copularnd('Frank', M, N, alpha_frank)
+            except ValueError:
+                U_frank   = np.zeros((M,N))
         if(alpha_gumbel!=-1):
-            U_gumbel  = copularnd('Gumbel', M, N, alpha_gumbel)
+            try:
+                U_gumbel  = copularnd('Gumbel', M, N, alpha_gumbel)
+            except ValueError:
+                U_gumbel  = np.zeros((M,N))
         
         # get each family's MN signature and plot it
         plt.figure(figsize=(30,20))
         
-        plt.subplot(131)
+        plt.subplot(231)
         if(np.sum(resultsAggregate['Gaussian'][tau])>0):
             plt.plot(np.arange(1,K*K+1), resultsAggregate['Gaussian'][tau], 'b.-', label='Gaussian Copula')
         if(np.sum(resultsAggregate['Clayton'][tau])>0):
@@ -481,7 +465,7 @@ def visualizeMNSig():
         if(np.sum(resultsAggregate['Frank'][tau])>0):
             plt.plot(np.arange(1,K*K+1), resultsAggregate['Frank'][tau], 'k.-', label='Frank Copula')
         
-        plt.title(r'Copula Multinomial Signature $\tau$=' + str(tau) + ' K=' + str(K))
+        plt.title(r'Copula Multinomial Signature $\tau$=' + "{0:.2f}".format(tau) + ' K=' + str(K))
         plt.legend()
         plt.grid()
         
@@ -501,7 +485,7 @@ def visualizeMNSig():
         if(alpha_frank!=-1):
             plt.scatter(U_frank[:,0], U_frank[:,1])
         plt.grid()
-        plt.title(r'Frank Copula, $\alpha$=' + "{0:.2f}".format(alpha_frank[0]) + r' $\tau$=' + "{0:.2f}".format(tau))
+        plt.title(r'Frank Copula, $\alpha$=' + "{0:.2f}".format(alpha_frank) + r' $\tau$=' + "{0:.2f}".format(tau))
         
         plt.subplot(236)
         if(alpha_gumbel!=-1):
@@ -509,6 +493,34 @@ def visualizeMNSig():
         plt.grid()
         plt.title(r'Gumbel Copula, $\alpha$=' + "{0:.2f}".format(alpha_gumbel) + r' $\tau$=' + "{0:.2f}".format(tau))
         
+        plt.subplot(234)
+        # index manually to ensure accuracy
+        cla = np.array([helmAccuracyResults['Clayton'][tau]['clayton'],
+                        helmAccuracyResults['Gaussian'][tau]['clayton'],
+                        helmAccuracyResults['Gumbel'][tau]['clayton'],
+                        helmAccuracyResults['Frank'][tau]['clayton']])
+        gau = np.array([helmAccuracyResults['Clayton'][tau]['gaussian'],
+                        helmAccuracyResults['Gaussian'][tau]['gaussian'],
+                        helmAccuracyResults['Gumbel'][tau]['gaussian'],
+                        helmAccuracyResults['Frank'][tau]['gaussian']])
+        gum = np.array([helmAccuracyResults['Clayton'][tau]['gumbel'],
+                        helmAccuracyResults['Gaussian'][tau]['gumbel'],
+                        helmAccuracyResults['Gumbel'][tau]['gumbel'],
+                        helmAccuracyResults['Frank'][tau]['gumbel']])
+        fra = np.array([helmAccuracyResults['Clayton'][tau]['frank'],
+                        helmAccuracyResults['Gaussian'][tau]['frank'],
+                        helmAccuracyResults['Gumbel'][tau]['frank'],
+                        helmAccuracyResults['Frank'][tau]['frank']])
+        ind = np.arange(4)
+        width = 0.2
+        p1 = plt.bar(ind,cla,width,color='b')
+        p2 = plt.bar(ind,gau,width,color='g',bottom=cla)
+        p3 = plt.bar(ind,gum,width,color='k',bottom=cla+gau)
+        p4 = plt.bar(ind,fra,width,color='r',bottom=cla+gau+gum)
+        plt.xticks(ind+width/2.,('Clayton', 'Gaussian', 'Gumbel', 'Frank'))
+        plt.legend( (p1[0], p2[0], p3[0], p4[0]), ('Clayton', 'Gaussian', 'Gumbel', 'Frank') )
+
+        plt.grid()
         plt.savefig(os.path.join('figures/HELM_performance/', 
                      'HELM_DIM_' + str(N) + '_tau_' + "{0:.2f}".format(tau) + ' _K_' + str(K) + '.png'))
         
@@ -559,7 +571,9 @@ if __name__=='__main__':
         results = testHELM(tau, M, N, family, numMCSims, families)
         plotPieChartResults(results, family, title)
     """
-    #resultsAggregate = testHELM_parametric()
+    #tauVec = np.arange(-0.9,0.95,0.05)
+    #resultsAggregate = testHELM_parametric(K,M,N,tauVec)
+    
     visualizeMNSig()
     
     
