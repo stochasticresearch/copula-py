@@ -183,14 +183,14 @@ def _frank(M, N, alpha):
             raise ValueError('For N>=3, alpha >0 in Frank Copula')
             
         U = np.empty((M,N))
-        v_vec = np.empty(M)
+        #v_vec = np.empty(M)
         for ii in range(0,M):
             p = -1.0*np.expm1(-1*alpha)
             if(p==1):
                 # boundary case protection
                 p = 1 - np.spacing(1)
             v = logser.rvs(p, size=1)
-            v_vec[ii] = v
+            #v_vec[ii] = v
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
             t = -1*np.log(x_i)/v
@@ -227,6 +227,7 @@ def _gumbel(M, N, alpha):
         # Algorithm 1 described in both the SAS Copula Procedure, as well as the
         # paper: "High Dimensional Archimedean Copula Generation Algorithm"
         U = np.empty((M,N))
+        #v_vec = np.empty(M)
         for ii in range(0,M):
             a  = 1.0/alpha
             b  = 1
@@ -234,13 +235,15 @@ def _gumbel(M, N, alpha):
             d  = 0
             pm = 1
             v = rstable1(1,a,b,g,d,pm)
-            
+            #v_vec[ii] = v
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
             t = -1*np.log(x_i)/v
             
             U[ii,:] = np.exp(-1*np.power(t, 1.0/alpha))
-            
+        
+        #sio.savemat('gamma_v.mat', {'v':v_vec})
+        
     return U
 
 
