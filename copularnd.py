@@ -33,6 +33,8 @@ from scipy.stats import t
 from rstable1 import rstable1
 from statsmodels.sandbox.distributions import multivariate as mvt
 
+import scipy.io as sio
+
 """
 copularnd.py contains routines which provide samples of a copula density
 """
@@ -181,17 +183,20 @@ def _frank(M, N, alpha):
             raise ValueError('For N>=3, alpha >0 in Frank Copula')
             
         U = np.empty((M,N))
+        v_vec = np.empty(M)
         for ii in range(0,M):
             p = -1.0*np.expm1(-1*alpha)
             if(p==1):
                 # boundary case protection
                 p = 1 - np.spacing(1)
             v = logser.rvs(p, size=1)
-            
+            v_vec[ii] = v
             # sample N independent uniform random variables
             x_i = uniform.rvs(size=N)
             t = -1*np.log(x_i)/v
             U[ii,:] = -1.0*np.log1p( np.exp(-t)*np.expm1(-1.0*alpha))/alpha
+            
+        #sio.savemat('logser_v.mat', {'v':v_vec})
             
     return U
 
@@ -246,7 +251,7 @@ if __name__=='__main__':
     rh = 0.6
     Rho = np.array([[1,rh],[rh,1]])
     nu = 2
-    N = 3
+    N = 2
     alpha = 5
     
     # Generate 2-D Copula RV's
